@@ -340,8 +340,8 @@ classdef MEKF < handle
             qkm = qkm / norm(qkm); % normalise quaternion
             
             % Covariance equation propagation
-            Fk_1 = [I3  -I3 * dt ;
-                    O3     I3   ];
+            Fk_1 = [I3-omekx*dt  -I3 * dt ;      % add -omekx*dt ?
+                    O3             I3   ];
             G = [-I3 O3 ;
                   O3 I3];
             Pkm = Fk_1 * Pk_1p * Fk_1' + G * obj.Q * G';
@@ -425,12 +425,12 @@ classdef MEKF < handle
             end
             
             % Update Covariance
-            %Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';
+            % Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';
             Pkp = (I6 - Kk * Hk) * Pkm;
 
             % Update state covariance
             Kkdk = Kk*dk;
-            Qk = alpha*Qk + (1-alpha)*(Kkdk*(Kkdk'));
+            Qk = alpha*Qk + (1-alpha)*G'*(Kkdk*(Kkdk'))*G;
                     
             % Update biases
             deltaBeta = deltaXkp(4:6,1);

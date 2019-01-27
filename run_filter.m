@@ -30,21 +30,20 @@ omega = [vehicle_attitude_0.rollspeed vehicle_attitude_0.pitchspeed vehicle_atti
 
 % Interpolate data in order to have a fixed timestep
 dt = mode(diff(time_sensors));
-new_time = (time_sensors(1):dt:time_sensors(end))';
+time = (time_sensors(1):dt:time_sensors(end))';
 
-gyroscope = interp1(time_sensors, gyroscope, new_time);
-accelerometer = interp1(time_sensors, accelerometer, new_time);
-magnetometer = interp1(time_sensors, magnetometer, new_time);
-optitrack = interp1(time_optitrack, optitrack, new_time);
-att_q = interp1(time_att, att_q, new_time);
-omega = interp1(time_att, omega, new_time);
-
-time_sensors = new_time;
+gyroscope = interp1(time_sensors, gyroscope, time);
+accelerometer = interp1(time_sensors, accelerometer, time);
+magnetometer = interp1(time_sensors, magnetometer, time);
+optitrack = interp1(time_optitrack, optitrack, time);
+att_q = interp1(time_att, att_q, time);
+omega = interp1(time_att, omega, time);
 
 clearvars -except ...
     time_sensors accelerometer gyroscope magnetometer ...
     time_optitrack optitrack ...
-    time_att_q att_q omega
+    time_att_q att_q omega ...
+    time
 
 %% Multiplicative Extended Kalman Filter
 % Tuning
@@ -64,24 +63,24 @@ q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
 P_0 = 1e-4*eye(6);
 
-dt0 = time_sensors(2) - time_sensors(1);
+dt0 = time(2) - time(1);
 Q_0 = [(sigma_v^2*dt0+1/3*sigma_w^2*dt0^3)*eye(3)       (1/2*sigma_w^2*dt0^2)*eye(3);
        (1/2*sigma_w^2*dt0^2)*eye(3)                     (sigma_w^2*dt0)*eye(3)      ];
-Q_0 = 1000*Q_0;
+Q_0 = 100*Q_0;
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
    
 %Attitude Estimator
-kalman_quaternion1 = zeros(length(time_sensors),4);
+kalman_quaternion1 = zeros(length(time),4);
 kalman_quaternion1(1,:) = q_0;
-kalman_omega1 = zeros(length(time_sensors),3);
+kalman_omega1 = zeros(length(time),3);
 kalman_omega1(1,:) = beta_0;
-kalman_bias1 = zeros(length(time_sensors),3);
+kalman_bias1 = zeros(length(time),3);
 kalman_bias1(1,:) = beta_0;
-kalman_sigma1 = zeros(length(time_sensors),3);
+kalman_sigma1 = zeros(length(time),3);
 kalman_sigma1(1,:) = [P_0(1,1),P_0(2,2),P_0(3,3)];
-kalman_Q1 = zeros(length(time_sensors), length(P_0), length(P_0));
+kalman_Q1 = zeros(length(time), length(P_0), length(P_0));
 kalman_Q1(1,:,:) = Q_0;
 
 AHRS1 = MEKF('q', q_0, 'bias', beta_0, 'P', P_0,...
@@ -99,8 +98,8 @@ AHRS2 = MEKF('q', q_0, 'bias', beta_0, 'P', P_0,...
     'sigma_acc', sigma_acc, 'sigma_mag', sigma_mag, 'sigma_opti', sigma_opti, ...
     'sigma_w', sigma_w, 'sigma_v', sigma_v, 'Q', Q_0, 'R', R_0);
 
-for k = 2 : length(time_sensors)
-    dt = time_sensors(k) - time_sensors(k-1);
+for k = 2 : length(time)
+    dt = time(k) - time(k-1);
     
     AHRS1.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), 1);
     AHRS2.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), alpha);
@@ -133,7 +132,7 @@ optitrack_euler = zeros(length(kalman_quaternion1),3);
 %OB_euler_e = zeros(length(kalman_quaternion),3);
 %OB_euler = zeros(length(kalman_quaternion),3);
 
-for k = 1 : length(time_sensors)
+for k = 1 : length(time)
     MEKF1_q_e(k,:) = quatProd(optitrack(k,:)', quatConj(kalman_quaternion1(k,:)'))';
     MEKF1_euler_e(k,:) = quatToEuler( MEKF1_q_e(k,:) );
     MEKF1_euler(k,:) = quatToEuler( kalman_quaternion1(k,:) );
@@ -154,33 +153,33 @@ figure
 subplot(4,1,1)
 hold on
 title('MEKF - Quaternion')
-plot(time_sensors, optitrack(:,1))
-plot(time_sensors, kalman_quaternion1(:,1))
-plot(time_sensors, kalman_quaternion2(:,1))
+plot(time, optitrack(:,1))
+plot(time, kalman_quaternion1(:,1))
+plot(time, kalman_quaternion2(:,1))
 hold off
 grid
 ylabel('$q_1$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,2)
 hold on
-plot(time_sensors, optitrack(:,2))
-plot(time_sensors, kalman_quaternion1(:,2))
-plot(time_sensors, kalman_quaternion2(:,2))
+plot(time, optitrack(:,2))
+plot(time, kalman_quaternion1(:,2))
+plot(time, kalman_quaternion2(:,2))
 hold off
 grid
 ylabel('$q_2$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,3)
 hold on
-plot(time_sensors, optitrack(:,3))
-plot(time_sensors, kalman_quaternion1(:,3))
-plot(time_sensors, kalman_quaternion2(:,3))
+plot(time, optitrack(:,3))
+plot(time, kalman_quaternion1(:,3))
+plot(time, kalman_quaternion2(:,3))
 hold off
 grid
 ylabel('$q_3$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,4)
 hold on
-plot(time_sensors, optitrack(:,4))
-plot(time_sensors, kalman_quaternion1(:,4))
-plot(time_sensors, kalman_quaternion2(:,4))
+plot(time, optitrack(:,4))
+plot(time, kalman_quaternion1(:,4))
+plot(time, kalman_quaternion2(:,4))
 hold off
 ylabel('$q_4$','Interpreter','latex','fontsize',12.0)
 grid
@@ -191,27 +190,27 @@ figure
 subplot(3,1,1)
 title('Estimated Euler angles')
 hold on
-plot(time_sensors, optitrack_euler(:,1))
-plot(time_sensors, MEKF1_euler(:,1))
-plot(time_sensors, MEKF2_euler(:,1))
+plot(time, optitrack_euler(:,1))
+plot(time, MEKF1_euler(:,1))
+plot(time, MEKF2_euler(:,1))
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\phi [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-plot(time_sensors, optitrack_euler(:,2))
-plot(time_sensors, MEKF1_euler(:,2))
-plot(time_sensors, MEKF2_euler(:,2))
+plot(time, optitrack_euler(:,2))
+plot(time, MEKF1_euler(:,2))
+plot(time, MEKF2_euler(:,2))
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\theta [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-plot(time_sensors, optitrack_euler(:,3))
-plot(time_sensors, MEKF1_euler(:,3))
-plot(time_sensors, MEKF2_euler(:,3))
+plot(time, optitrack_euler(:,3))
+plot(time, MEKF1_euler(:,3))
+plot(time, MEKF2_euler(:,3))
 hold off
 grid
 ylabel('$\psi [rad]$','Interpreter','latex','fontsize',12.0)
@@ -222,36 +221,36 @@ figure
 subplot(3,1,1)
 title('Estimation error')
 hold on
-plot(time_sensors, MEKF1_euler_e(:,1))
-plot(time_sensors, MEKF2_euler_e(:,1))
-plot(time_sensors, 3*kalman_sigma1(:,1),'r--')
-plot(time_sensors, -3*kalman_sigma1(:,1),'r--')
-plot(time_sensors, 3*kalman_sigma2(:,1),'b--')
-plot(time_sensors, -3*kalman_sigma2(:,1),'b--')
+plot(time, MEKF1_euler_e(:,1))
+plot(time, MEKF2_euler_e(:,1))
+plot(time, 3*kalman_sigma1(:,1),'r--')
+plot(time, -3*kalman_sigma1(:,1),'r--')
+plot(time, 3*kalman_sigma2(:,1),'b--')
+plot(time, -3*kalman_sigma2(:,1),'b--')
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\delta\phi [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-plot(time_sensors, MEKF1_euler_e(:,2))
-plot(time_sensors, MEKF2_euler_e(:,2))
-plot(time_sensors, 3*kalman_sigma1(:,2),'r--')
-plot(time_sensors, -3*kalman_sigma1(:,2),'r--')
-plot(time_sensors, 3*kalman_sigma2(:,2),'b--')
-plot(time_sensors, -3*kalman_sigma2(:,2),'b--')
+plot(time, MEKF1_euler_e(:,2))
+plot(time, MEKF2_euler_e(:,2))
+plot(time, 3*kalman_sigma1(:,2),'r--')
+plot(time, -3*kalman_sigma1(:,2),'r--')
+plot(time, 3*kalman_sigma2(:,2),'b--')
+plot(time, -3*kalman_sigma2(:,2),'b--')
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\delta\theta [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-plot(time_sensors, MEKF1_euler_e(:,3))
-plot(time_sensors, MEKF2_euler_e(:,3))
-plot(time_sensors, 3*kalman_sigma1(:,3),'r--')
-plot(time_sensors, -3*kalman_sigma1(:,3),'r--')
-plot(time_sensors, 3*kalman_sigma2(:,3),'b--')
-plot(time_sensors, -3*kalman_sigma2(:,3),'b--')
+plot(time, MEKF1_euler_e(:,3))
+plot(time, MEKF2_euler_e(:,3))
+plot(time, 3*kalman_sigma1(:,3),'r--')
+plot(time, -3*kalman_sigma1(:,3),'r--')
+plot(time, 3*kalman_sigma2(:,3),'b--')
+plot(time, -3*kalman_sigma2(:,3),'b--')
 hold off
 grid
 ylabel('$\delta\psi [rad]$','Interpreter','latex','fontsize',12.0)
@@ -262,25 +261,25 @@ figure
 subplot(3,1,1)
 title('Angular velocity')
 hold on
-plot(time_sensors, kalman_omega1(:,1))
-plot(time_sensors, kalman_omega2(:,1))
-plot(time_sensors, omega(:,1))
+plot(time, kalman_omega1(:,1))
+plot(time, kalman_omega2(:,1))
+plot(time, omega(:,1))
 hold off
 grid
 ylabel('$p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-plot(time_sensors, kalman_omega1(:,2))
-plot(time_sensors, kalman_omega2(:,2))
-plot(time_sensors, omega(:,2))
+plot(time, kalman_omega1(:,2))
+plot(time, kalman_omega2(:,2))
+plot(time, omega(:,2))
 hold off
 grid
 ylabel('$q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-plot(time_sensors, kalman_omega1(:,3))
-plot(time_sensors, kalman_omega2(:,3))
-plot(time_sensors, omega(:,3))
+plot(time, kalman_omega1(:,3))
+plot(time, kalman_omega2(:,3))
+plot(time, omega(:,3))
 hold off
 grid
 ylabel('$r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
@@ -291,22 +290,22 @@ figure
 subplot(3,1,1)
 title('Estimated bias')
 hold on
-plot(time_sensors, kalman_bias1(:,1))
-plot(time_sensors, kalman_bias2(:,1))
+plot(time, kalman_bias1(:,1))
+plot(time, kalman_bias2(:,1))
 hold off
 grid
 ylabel('$p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-plot(time_sensors, kalman_bias1(:,2))
-plot(time_sensors, kalman_bias2(:,2))
+plot(time, kalman_bias1(:,2))
+plot(time, kalman_bias2(:,2))
 hold off
 grid
 ylabel('$q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-plot(time_sensors, kalman_bias1(:,3))
-plot(time_sensors, kalman_bias2(:,3))
+plot(time, kalman_bias1(:,3))
+plot(time, kalman_bias2(:,3))
 hold off
 grid
 ylabel('$r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
@@ -317,18 +316,18 @@ figure
 subplot(3,1,1)
 title('Error angular velocities')
 hold on;
-plot(time_sensors, kalman_omega1(:,1)-omega(:,1), ...
-     time_sensors, kalman_omega2(:,1)-omega(:,1));
+plot(time, kalman_omega1(:,1)-omega(:,1), ...
+     time, kalman_omega2(:,1)-omega(:,1));
 grid
 ylabel('$\mathrm{error} \; p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
-plot(time_sensors, kalman_omega1(:,2)-omega(:,2), ...
-     time_sensors, kalman_omega2(:,2)-omega(:,2));
+plot(time, kalman_omega1(:,2)-omega(:,2), ...
+     time, kalman_omega2(:,2)-omega(:,2));
 grid;
 ylabel('$\mathrm{error} \; q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
-plot(time_sensors, kalman_omega1(:,3)-omega(:,3), ...
-     time_sensors, kalman_omega2(:,3)-omega(:,3));
+plot(time, kalman_omega1(:,3)-omega(:,3), ...
+     time, kalman_omega2(:,3)-omega(:,3));
 grid
 ylabel('$\mathrm{error} \; r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
