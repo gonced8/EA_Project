@@ -110,6 +110,8 @@ disp('Start');
 for i = 1:npoints
     fprintf('alpha = %.2f\n', alpha(i));
     
+    results(i).alpha = alpha(i);
+    
     AHRS = MEKF('q', q_0, 'bias', beta_0, 'P', P_0,...
     'sigma_acc', sigma_acc, 'sigma_mag', sigma_mag, 'sigma_opti', sigma_opti, ...
     'sigma_w', sigma_w, 'sigma_v', sigma_v, 'Q', Q_0, 'R', R_0);
