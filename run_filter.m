@@ -58,7 +58,7 @@ sigma_v = 1e-3;
 %Sigma rate random walk (RRW)
 sigma_w = 1e-4;
 
-%q_0 = [0 0 0 1]';
+% q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
 P_0 = 1e-4*eye(6);
@@ -70,7 +70,7 @@ Q_0 = 100*Q_0;
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
-   
+
 %Attitude Estimator
 kalman_quaternion1 = zeros(length(time),4);
 kalman_quaternion1(1,:) = q_0;
@@ -332,5 +332,27 @@ grid
 ylabel('$\mathrm{error} \; r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
 legend('MEKF (normal) vs OB', 'MEKF (updating Q) vs OB')
+hold off;
+% Q update effect analysis
+
+ndata = length(time);
+
+trace_Q = zeros(ndata,1);
+eig_Q = zeros(ndata,6);
+
+for i = 1:ndata
+   Q = reshape(kalman_Q2(i,:,:), size(kalman_Q2,2), size(kalman_Q2,3));
+   trace_Q(i) = trace(Q);
+   eig_Q(i,:) = eig(Q);
+end
+
+figure; hold on; grid on;
+plot(time, trace_Q);
+title('Trace of Q matrix over time for alpha =');
+xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
+ylabel('$\mathrm{Trace \ of \ Q}$','Interpreter','latex','fontsize',12.0)
+
+
+
 
 %% END OF CODE
