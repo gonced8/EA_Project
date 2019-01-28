@@ -58,7 +58,7 @@ sigma_v = 1e-3;
 %Sigma rate random walk (RRW)
 sigma_w = 1e-4;
 
-%q_0 = [0 0 0 1]';
+% q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
 P_0 = 1e-4*eye(6);
@@ -70,7 +70,7 @@ Q_0 = 100*Q_0;
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
-   
+
 %Attitude Estimator
 kalman_quaternion = zeros(length(time),4);
 kalman_quaternion(1,:) = q_0;
