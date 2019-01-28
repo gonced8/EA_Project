@@ -93,7 +93,7 @@ kalman_bias2 = kalman_bias1;
 kalman_sigma2 = kalman_sigma1;
 kalman_Q2 = kalman_Q1;
 
-alpha = 0.3;
+alpha = 0.99;
 AHRS2 = MEKF('q', q_0, 'bias', beta_0, 'P', P_0,...
     'sigma_acc', sigma_acc, 'sigma_mag', sigma_mag, 'sigma_opti', sigma_opti, ...
     'sigma_w', sigma_w, 'sigma_v', sigma_v, 'Q', Q_0, 'R', R_0);

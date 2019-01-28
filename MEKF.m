@@ -425,8 +425,8 @@ classdef MEKF < handle
             end
             
             % Update Covariance
-            % Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';
-            Pkp = (I6 - Kk * Hk) * Pkm;
+            Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';   % this form garantees symmetry
+            % Pkp = (I6 - Kk * Hk) * Pkm;
 
             % Update state covariance
             Kkdk = Kk*dk;
