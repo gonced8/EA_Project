@@ -134,7 +134,8 @@ for i = 1:npoints
     
     clearvars AHRS
 end
+disp('Done');
 
-save('results.mat', 'time', 'results', '-v7.3');
-
+% save('results.mat', 'time', 'results', '-v7.3');
+% disp('Saved results.mat');
 %% END OF CODE
