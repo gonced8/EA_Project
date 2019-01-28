@@ -316,7 +316,7 @@ classdef MEKF < handle
             obj.P = Pkp;
         end
         
-        function obj = UPDATE(obj, dt, Gyroscope, Accelerometer, Magnetometer, alpha)
+        function obj = UPDATE(obj, dt, Gyroscope, Accelerometer, Magnetometer, alpha, beta)
             % Constant parameters renamed for simplicity
             I3 = eye(3);
             I4 = eye(4);
@@ -337,10 +337,10 @@ classdef MEKF < handle
             Omegak_1p = [-omekx, omek ;
                          -omek', 0   ];
             qkm = (I4 + 1/2 * Omegak_1p * dt) * qk_1p;
-            qkm = qkm / norm(qkm); % normalise quaternion
+            qkm = qkm / norm(qkm);      % normalise quaternion
             
             % Covariance equation propagation
-            Fk_1 = [I3-omekx*dt  -I3 * dt ;      % add -omekx*dt ?
+            Fk_1 = [I3-omekx*dt  -I3 * dt ;
                     O3             I3   ];
             G = [-I3 O3 ;
                   O3 I3];
@@ -357,7 +357,9 @@ classdef MEKF < handle
             hk = zeros(length(Rk), 1);
             Hk = zeros(length(Rk), 6);
             
+            % Sensors measurements
             for i = 0:1
+                % accelerometer
                 if i==0
                     % Reference direction of Earth's gravitational field
                     r_acc = [ 0  ;
@@ -369,6 +371,8 @@ classdef MEKF < handle
 
                     yk(1:3,1) = b_acc;
                     hk(1:3,1) = Akm * r_acc;
+                
+                % magnetometer
                 elseif i==1
                     % Normalise magnetometer measurement
                     if(norm(Magnetometer) == 0), return; end        % handle NaN
@@ -392,12 +396,11 @@ classdef MEKF < handle
 
             dk = yk - hk;           % innovation
      
-%             if alpha<1
-%                 iter = 2;
-%             else
-%                 iter = 1;
-%             end
-            iter = 1;
+            if beta<1
+                iter = 2;
+            else
+                iter = 1;
+            end
             
             for j = 1:iter
                 % Gain
@@ -420,12 +423,12 @@ classdef MEKF < handle
                     hkp = [Akp*r_acc;
                            Akp*r_mag];
                     ek = yk - hkp;          % residual
-                    Rk = alpha*obj.R + (1-alpha)*(ek*ek' + Hk*Pkm*Hk');
+                    Rk = beta*obj.R + (1-beta)*(ek*ek' + Hk*Pkm*Hk');
                 end
             end
             
             % Update Covariance
-            Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';   % this form garantees symmetry
+            Pkp = (I6 - Kk * Hk) * Pkm * (I6 - Kk * Hk)' + Kk * Rk * Kk';   % this form assures symmetry
             % Pkp = (I6 - Kk * Hk) * Pkm;
 
             % Update state covariance
@@ -437,7 +440,7 @@ classdef MEKF < handle
             betakp = betakm + deltaBeta;
 
             % Update omega
-            omek = Gyroscope' - betakp;     % is this correct?
+            omek = Gyroscope' - betakp;
             
             %% Outputs
             obj.q = qkp;
