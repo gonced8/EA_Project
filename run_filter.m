@@ -138,6 +138,6 @@ for i = 1:npoints
 end
 disp('Done');
 
-% save('results.mat', 'time', 'results', '-v7.3');
-% disp('Saved results.mat');
+ save('results.mat', 'time', 'results', '-v7.3');
+ disp('Saved results.mat');
 %% END OF CODE

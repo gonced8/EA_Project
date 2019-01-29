@@ -1,4 +1,13 @@
+% Obtain data in double array for alpha vals and cell arrays for the rest from results.mat
+get_data;
+
+
 %% Plot
+
+if ~exist('results') || ~exist('time')
+    get_data;
+end
+
 figure
 subplot(4,1,1)
 hold on
@@ -187,19 +196,48 @@ hold off;
 
 %% Q update effect analysis
 
-ndata = length(time);
+if ~exist('results') || ~exist('time')
+    get_data;
+end
 
-trace_Q = zeros(ndata,1);
-eig_Q = zeros(ndata,6);
 
-for i = 1:ndata
-   Q = reshape(kalman_Q2(i,:,:), size(kalman_Q2,2), size(kalman_Q2,3));
-   trace_Q(i) = trace(Q);
-   eig_Q(i,:) = eig(Q);
+% Plot trace of Q over time for values of alpha
+alpha_vec = [0, 0.25, 0.5, 0.75, 1];
+n_alpha = length(alpha_vec);
+
+index = zeros(1,n_alpha);
+
+for i = 1:n_alpha
+    [~,index(i)] = min(abs(alpha - alpha_vec(i)));
 end
 
 figure; hold on; grid on;
-plot(time, trace_Q);
-title('Trace of Q matrix over time for alpha =');
-xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-ylabel('$\mathrm{Trace \ of \ Q}$','Interpreter','latex','fontsize',12.0)
+title('Trace of Q matrix for several values of \alpha');
+
+for j = 1:n_alpha
+    
+    Q = kalman_Q{index(j)};
+    ndata = length(time);
+    trace_Q = zeros(ndata,1);
+    eig_Q = zeros(ndata,6);
+    
+    for i = 1:ndata
+        Q_i = reshape(Q(i,:,:), size(Q,2), size(Q,3));
+        trace_Q(i) = trace(Q_i);
+        eig_Q(i,:) = eig(Q_i);
+    end
+    
+    subplot(n_alpha,1,j);
+    plot(time, trace_Q);
+    set(gca, 'YScale', 'log');
+    xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
+    ylabel(['Trace of Q for \alpha = ' num2str(alpha_vec(j))]);
+end
+
+
+% Plot variance of Q for each alpha
+for i = 1:npoints
+    
+    
+    
+end
