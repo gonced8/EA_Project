@@ -350,7 +350,13 @@ classdef MEKF < handle
             Akm = quatToAtt(qkm);
             
             %% Correction (measurement update)
-            Qk = obj.Q;
+            if alpha==-1
+                Qk = [(obj.sigma_v^2 * dt + 1/3 * obj.sigma_w^2 * dt^3) * I3,     (1/2 * obj.sigma_w^2 * dt^2) * I3 ;
+                                  (1/2 * obj.sigma_w^2 * dt^2) * I3,                  (obj.sigma_w^2 * dt) * I3    ];
+            else
+                Qk = obj.Q;
+            end
+            
             Rk = obj.R;
             
             yk = zeros(length(Rk), 1);
@@ -432,9 +438,11 @@ classdef MEKF < handle
             % Pkp = (I6 - Kk * Hk) * Pkm;
 
             % Update state covariance
-            Kkdk = Kk*dk;
-            Qk = alpha*Qk + (1-alpha)*G'*(Kkdk*(Kkdk'))*G;
-                    
+            if alpha~=-1
+                Kkdk = Kk*dk;
+                Qk = alpha*Qk + (1-alpha)*G'*(Kkdk*(Kkdk'))*G;
+            end
+            
             % Update biases
             deltaBeta = deltaXkp(4:6,1);
             betakp = betakm + deltaBeta;
