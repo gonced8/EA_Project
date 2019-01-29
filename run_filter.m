@@ -30,12 +30,14 @@ omega = [vehicle_attitude_0.rollspeed vehicle_attitude_0.pitchspeed vehicle_atti
 
 % Interpolate data in order to have a fixed timestep
 dt = mode(diff(time_sensors));
-time = (time_sensors(1):dt:time_sensors(end))';
+time = (max(time_sensors(1), time_optitrack(1)) ...
+        :dt: ...
+        min(time_sensors(end), time_optitrack(end)))';
 
 gyroscope = interp1(time_sensors, gyroscope, time);
 accelerometer = interp1(time_sensors, accelerometer, time);
 magnetometer = interp1(time_sensors, magnetometer, time);
-optitrack = interp1(time_optitrack, optitrack, time);
+optitrack = interp1(time_optitrack, optitrack, time);     % ended with NaN
 att_q = interp1(time_att, att_q, time);
 omega = interp1(time_att, omega, time);
 
@@ -43,20 +45,20 @@ clearvars -except ...
     time_sensors accelerometer gyroscope magnetometer ...
     time_optitrack optitrack ...
     time_att_q att_q omega ...
-    time
+    time dt
 
 %% Multiplicative Extended Kalman Filter
 % Tuning
 %Sigma accelerometer
-sigma_acc = 1e-2;
+sigma_acc = 0.1237; %1e-2;
 %Sigma magnetometer
-sigma_mag = 1e-2;
+sigma_mag = 0.0560; %1e-2;
 %Sigma optitrack 
 sigma_opti = 1e-2;
 %Sigma angular random walk (ARW)
-sigma_v = 1e-3;
+sigma_v = (9.486e-3)/sqrt(dt); %1e-3;
 %Sigma rate random walk (RRW)
-sigma_w = 1e-4;
+sigma_w = (5.621e-5)*sqrt(dt); %1e-4;
 
 % q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
@@ -67,6 +69,7 @@ dt0 = time(2) - time(1);
 Q_0 = [(sigma_v^2*dt0+1/3*sigma_w^2*dt0^3)*eye(3)       (1/2*sigma_w^2*dt0^2)*eye(3);
        (1/2*sigma_w^2*dt0^2)*eye(3)                     (sigma_w^2*dt0)*eye(3)      ];
 Q_0 = 100*Q_0;
+%Q_0 = zeros(6);
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
@@ -89,7 +92,7 @@ MEKF_euler_e = zeros(length(kalman_quaternion),3);
 MEKF_euler = zeros(length(kalman_quaternion),3);
 
 npoints = 51;
-alpha = linspace(0, 1, npoints);
+alpha = [-1, linspace(0, 1, npoints)];
 beta = 1;
 
 results = repmat(struct('alpha', 0, ...
@@ -101,13 +104,13 @@ results = repmat(struct('alpha', 0, ...
                         'MEKF_q_e', MEKF_q_e, ...
                         'MEKF_euler_e', MEKF_euler_e, ...
                         'MEKF_euler', MEKF_euler), ...
-                        npoints, 1 );
+                        length(alpha), 1 );
                     
 clearvars kalman_quaternion kalman_omega kalman_bias kalman_sigma kalman_Q ...
           MEKF_q_e MEKF_euler_e MEKF_euler
 
 disp('Start');
-for i = 1:npoints
+for i = 1:length(alpha)
     fprintf('alpha = %.2f\n', alpha(i));
     
     results(i).alpha = alpha(i);
@@ -136,8 +139,11 @@ for i = 1:npoints
     
     clearvars AHRS
 end
+results(1).kalman_Q(1,:,:) = results(1).kalman_Q(end,:,:);  % correct theoretical Q initial matrix Q
 disp('Done');
 
- save('results.mat', 'time', 'results', '-v7.3');
- disp('Saved results.mat');
+
+save('results.mat', 'time', 'results', '-v7.3');
+disp('Saved results.mat');
+
 %% END OF CODE

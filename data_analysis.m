@@ -238,6 +238,205 @@ end
 % Plot variance of Q for each alpha
 for i = 1:npoints
     
+
+%% Quaternion error
+close all
+
+if ~exist('results') || ~exist('time')
+    load('results.mat');
+end
+
+na = length(results);
+nq = size(results(1).MEKF_q_e, 2);
+
+qe.mean = zeros(na, nq);
+qe.cov = zeros(na, nq, nq);
+
+for i = 1:na
+    qe.mean(i, :) = mean(results(i).MEKF_q_e);
+    qe.cov(i, :, :) = covariance(results(i).MEKF_q_e);
+end
+
+true_mean = qe.mean(1,:);
+true_cov = squeeze(qe.cov(1,:,:));
+qe.mean = qe.mean(2:end,:);
+qe.cov = qe.cov(2:end,:,:);
+
+alpha = extractfield(results, 'alpha');
+alpha = alpha(2:end);
+
+%[~, im] = min(vecnorm(qe.mean(:, 1:4)-[0,0,0,1], 2, 2));
+[~, im] = min(1-dot(qe.mean, repmat([0,0,0,1], length(qe.mean), 1), 2));
+[~, ic] = min(sum(sum(abs(qe.cov), 3), 2));
+
+figure;
+subplot(4, 1, 1);
+hold on;
+plot(alpha, qe.mean(:, 1));
+plot(alpha(im), qe.mean(im,1), '*r');
+plot(alpha, ones(size(alpha))*true_mean(1), '--k');
+title('Mean of quaternion error against alpha');
+ylabel('$\bar q_1$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 2);
+hold on;
+plot(alpha, qe.mean(:, 2));
+plot(alpha(im), qe.mean(im,2), '*r');
+plot(alpha, ones(size(alpha))*true_mean(2), '--k');
+ylabel('$\bar q_2$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 3);
+hold on;
+plot(alpha, qe.mean(:, 3));
+plot(alpha(im), qe.mean(im,3), '*r');
+plot(alpha, ones(size(alpha))*true_mean(3), '--k');
+ylabel('$\bar q_3$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 4);
+hold on;
+plot(alpha, qe.mean(:, 4));
+plot(alpha(im), qe.mean(im,4), '*r');
+plot(alpha, ones(size(alpha))*true_mean(4), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\bar q_4$', 'interpreter', 'latex');
+grid;
+
+figure;
+subplot(4, 1, 1);
+hold on;
+plot(alpha, qe.cov(:, 1, 1));
+plot(alpha(ic), qe.cov(ic, 1, 1), '*r');
+plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
+title('Variance of quaternion error against alpha');
+ylabel('$\mathrm{Var}(q_1)$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 2);
+hold on;
+plot(alpha, qe.cov(:, 2, 2));
+plot(alpha(ic), qe.cov(ic, 2, 2), '*r');
+plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
+ylabel('$\mathrm{Var}(q_2)$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 3);
+hold on;
+plot(alpha, qe.cov(:, 3, 3));
+plot(alpha(ic), qe.cov(ic, 3, 3), '*r');
+plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
+ylabel('$\mathrm{Var}(q_3)$', 'interpreter', 'latex');
+grid;
+subplot(4, 1, 4);
+hold on;
+plot(alpha, qe.cov(:, 4, 4));
+plot(alpha(ic), qe.cov(ic, 4, 4), '*r');
+plot(alpha, ones(size(alpha))*true_cov(4,4), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\mathrm{Var}(q_4)$', 'interpreter', 'latex');
+grid;
+
+
+%% Euler angles error
+close all
+
+if ~exist('results') || ~exist('time')
+    load('results.mat');
+end
+
+na = length(results);
+ne = size(results(1).MEKF_euler_e, 2);
+
+eul.mean = zeros(na, ne);
+eul.cov = zeros(na, ne, ne);
+
+for i = 1:na
+    eul.mean(i, :) = mean(results(i).MEKF_euler_e);
+    eul.cov(i, :, :) = covariance(results(i).MEKF_euler_e);
+end
+
+true_mean = eul.mean(1,:);
+true_cov = squeeze(eul.cov(1,:,:));
+eul.mean = eul.mean(2:end,:);
+eul.cov = eul.cov(2:end,:,:);
+
+alpha = extractfield(results, 'alpha');
+alpha = alpha(2:end);
+
+[~, im] = min(vecnorm(eul.mean(:, 1:3), 2, 2));
+[~, ic] = min(sum(sum(abs(eul.cov), 3), 2));
+
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(alpha, eul.mean(:, 1));
+plot(alpha(im), eul.mean(im,1), '*r');
+plot(alpha, ones(size(alpha))*true_mean(1), '--k');
+title('Mean of euler angle error against alpha');
+ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 2);
+hold on;
+plot(alpha, eul.mean(:, 2));
+plot(alpha(im), eul.mean(im,2), '*r');
+plot(alpha, ones(size(alpha))*true_mean(2), '--k');
+ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 3);
+hold on;
+plot(alpha, eul.mean(:, 3));
+plot(alpha(im), eul.mean(im,3), '*r');
+plot(alpha, ones(size(alpha))*true_mean(3), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(alpha, eul.cov(:, 1, 1));
+plot(alpha(ic), eul.cov(ic, 1, 1), '*r');
+plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
+title('Variance of euler angle error against alpha');
+ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 2);
+hold on;
+plot(alpha, eul.cov(:, 2, 2));
+plot(alpha(ic), eul.cov(ic, 2, 2), '*r');
+plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
+ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 3);
+hold on;
+plot(alpha, eul.cov(:, 3, 3));
+plot(alpha(ic), eul.cov(ic, 3, 3), '*r');
+plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+
+
+function C = covariance(X)
+    % Get time dimension in first position
+    if size(X, 1)<size(X, 2)
+        X = X';
+    end
     
+    C = zeros(size(X, 2));
     
+    for i = 1:size(C, 1)
+        for j = i:size(C, 2)
+            if i==j
+                C(i,j) = var(X(:, i));
+            else
+                C(i,j) = covxy(X(:,i), X(:,j));
+            end
+        end
+    end
+    
+    % Mirror covariance matrix, since it is symmetric
+    C = triu(C) + triu(C,1)';
+    
+    function c = covxy(x, y)
+        c = (x-mean(x))'*(y-mean(y))/(length(x)-1);
+    end
 end
