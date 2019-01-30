@@ -18,6 +18,7 @@ classdef MEKF < handle
         sigma_v = 1;                % Sigma angle random walk
         Q = eye(6);                 % State covariance matrix
         R = eye(6);                 % Measurement covariance matrix
+        d = zeros(6, 1);
     end
     
     %% Public methods
@@ -438,7 +439,10 @@ classdef MEKF < handle
             % Pkp = (I6 - Kk * Hk) * Pkm;
 
             % Update state covariance
-            if alpha~=-1
+            if length(alpha)>1
+                Ed = alpha;
+                Qk = Kk*Ed*Kk';
+            elseif alpha~=-1
                 Kkdk = Kk*dk;
                 Qk = alpha*Qk + (1-alpha)*G'*(Kkdk*(Kkdk'))*G;
             end
@@ -457,6 +461,7 @@ classdef MEKF < handle
             obj.P = Pkp;
             obj.Q = Qk;
             obj.R = Rk;
+            obj.d = dk;
         end
     end
 end
