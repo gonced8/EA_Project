@@ -103,24 +103,24 @@ MEKF_q_e = zeros(size(kalman_quaternion));
 MEKF_euler_e = zeros(length(kalman_quaternion),3);
 MEKF_euler = zeros(length(kalman_quaternion),3);
 
-ff = [1];     % forgetting factor flag
+ff = [true];     % forgetting factor flag
 value = [-1];
 
 % update Q matrix with forgetting factor
 npoints = 51;
-alpha_value = linspace(0, 1, npoints)';
-value = [value; alpha_value];
+alpha_value = linspace(0, 1, npoints);
+value = [value, alpha_value];
 beta = 1;
-ff = [ff; true(length(alpha_value),1)];
+ff = [ff, true(1,length(alpha_value))];
 
 % update Q matrix with estimated value
 npoints = 55;
 window_max = 10000;
-window_value = logspace(0, log10(window_max), npoints)';
+window_value = logspace(0, log10(window_max), npoints);
 window_value = ceil(window_value); % value must be an integer.
 window_value = unique(window_value); % Remove duplicates.
-value = [value; window_value];
-ff = [ff; false(length(window_value),1)];
+value = [value, window_value];
+ff = [ff, false(1,length(window_value))];
 dd = zeros(length(time)-1, length(Q_0), length(Q_0));
 %
 
@@ -156,7 +156,7 @@ for i = 1:npoints
         dt = time(k) - time(k-1);
 
         if ff(i)
-            AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), value(i), beta);            
+            AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), value(i), 1);            
         else
             if k>2
                 Edd = mean(dd(max(1,k-1-value(i)):k-2, :, :), 1);

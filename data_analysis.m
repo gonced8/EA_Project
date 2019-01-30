@@ -531,8 +531,8 @@ if ~exist('results') || ~exist('time')
     load('results.mat');
 end
 
-ff = extractfield(results, 'ff')';
-value = extractfield(results, 'value')';
+ff = extractfield(results, 'ff');
+value = extractfield(results, 'value');
 
 results = results(value==-1+ff==false);
 
