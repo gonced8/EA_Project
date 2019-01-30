@@ -50,15 +50,28 @@ clearvars -except ...
 %% Multiplicative Extended Kalman Filter
 % Tuning
 %Sigma accelerometer
-sigma_acc = 0.1237; %1e-2;
+sigma_acc = 0.1237; 
 %Sigma magnetometer
-sigma_mag = 0.0560; %1e-2;
+sigma_mag = 0.0560;
 %Sigma optitrack 
 sigma_opti = 1e-2;
 %Sigma angular random walk (ARW)
-sigma_v = 9.486e-3; %1e-3;
+sigma_v = 9.486e-3; 
 %Sigma rate random walk (RRW)
-sigma_w = 5.621e-5; %1e-4;
+sigma_w = 5.621e-5; 
+
+
+% %Sigma accelerometer
+% sigma_acc = 1e-2;
+% %Sigma magnetometer
+% sigma_mag = 1e-2;
+% %Sigma optitrack 
+% sigma_opti = 1e-2;
+% %Sigma angular random walk (ARW)
+% sigma_v = 1e-3;
+% %Sigma rate random walk (RRW)
+% sigma_w = 1e-4;
+
 
 %q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
@@ -179,7 +192,7 @@ end
 
 disp('Done');
 
-save('results.mat', 'time', 'results', '-v7.3');
+save('results.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
 disp('Saved results.mat');
 
 %% END OF CODE
