@@ -32,7 +32,7 @@ omega = [vehicle_attitude_0.rollspeed vehicle_attitude_0.pitchspeed vehicle_atti
 dt = mode(diff(time_sensors));
 time = (max(time_sensors(1), time_optitrack(1)) ...
         :dt: ...
-        min(time_sensors(end), time_optitrack(end)))';
+        180)';%min(time_sensors(end), time_optitrack(end)))';
 
 gyroscope = interp1(time_sensors, gyroscope, time);
 accelerometer = interp1(time_sensors, accelerometer, time);
@@ -56,24 +56,23 @@ sigma_mag = 0.0560; %1e-2;
 %Sigma optitrack 
 sigma_opti = 1e-2;
 %Sigma angular random walk (ARW)
-sigma_v = (9.486e-3)/sqrt(dt); %1e-3;
+sigma_v = 9.486e-3; %1e-3;
 %Sigma rate random walk (RRW)
-sigma_w = (5.621e-5)*sqrt(dt); %1e-4;
+sigma_w = 5.621e-5; %1e-4;
 
-% q_0 = [0 0 0 1]';
+%q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
 P_0 = 1e-4*eye(6);
 
-dt0 = time(2) - time(1);
-Q_0 = [(sigma_v^2*dt0+1/3*sigma_w^2*dt0^3)*eye(3)       (1/2*sigma_w^2*dt0^2)*eye(3);
-       (1/2*sigma_w^2*dt0^2)*eye(3)                     (sigma_w^2*dt0)*eye(3)      ];
-Q_0 = 100*Q_0;
-%Q_0 = zeros(6);
+err = 0.1;
+Q_0 = [((err*sigma_v)^2*dt+1/3*(err*sigma_w)^2*dt^3)*eye(3)       (1/2*(err*sigma_w)^2*dt^2)*eye(3) ;
+       (1/2*(err*sigma_w)^2*dt^2)*eye(3)                          ((err*sigma_w)^2*dt)*eye(3)      ];
+%Q_0 = 100*Q_0;
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
-
+        
 %Attitude Estimator
 kalman_quaternion = zeros(length(time),4);
 kalman_quaternion(1,:) = q_0;
@@ -91,11 +90,31 @@ MEKF_q_e = zeros(size(kalman_quaternion));
 MEKF_euler_e = zeros(length(kalman_quaternion),3);
 MEKF_euler = zeros(length(kalman_quaternion),3);
 
-npoints = 51;
-alpha = [-1, linspace(0, 1, npoints)];
-beta = 1;
+ff = [1];     % forgetting factor flag
+value = [-1];
 
-results = repmat(struct('alpha', 0, ...
+% update Q matrix with forgetting factor
+npoints = 51;
+alpha_value = linspace(0, 1, npoints)';
+value = [value; alpha_value];
+beta = 1;
+ff = [ff; true(length(alpha_value),1)];
+
+% update Q matrix with estimated value
+npoints = 55;
+window_max = 10000;
+window_value = logspace(0, log10(window_max), npoints)';
+window_value = ceil(window_value); % value must be an integer.
+window_value = unique(window_value); % Remove duplicates.
+value = [value; window_value];
+ff = [ff; false(length(window_value),1)];
+dd = zeros(length(time)-1, length(Q_0), length(Q_0));
+%
+
+npoints = length(ff);
+
+results = repmat(struct('ff', false, ...
+                        'value', 0, ...
                         'kalman_quaternion', kalman_quaternion, ...
                         'kalman_omega', kalman_omega, ...
                         'kalman_bias', kalman_bias, ...
@@ -104,16 +123,17 @@ results = repmat(struct('alpha', 0, ...
                         'MEKF_q_e', MEKF_q_e, ...
                         'MEKF_euler_e', MEKF_euler_e, ...
                         'MEKF_euler', MEKF_euler), ...
-                        length(alpha), 1 );
+                        npoints, 1 );
                     
 clearvars kalman_quaternion kalman_omega kalman_bias kalman_sigma kalman_Q ...
-          MEKF_q_e MEKF_euler_e MEKF_euler
+          MEKF_q_e MEKF_euler_e MEKF_euler alpha_value window_value
 
 disp('Start');
-for i = 1:length(alpha)
-    fprintf('alpha = %.2f\n', alpha(i));
+for i = 1:npoints
+    fprintf('value = %d\n', value(i));
     
-    results(i).alpha = alpha(i);
+    results(i).ff = ff(i);
+    results(i).value = value(i);
     
     AHRS = MEKF('q', q_0, 'bias', beta_0, 'P', P_0,...
     'sigma_acc', sigma_acc, 'sigma_mag', sigma_mag, 'sigma_opti', sigma_opti, ...
@@ -122,8 +142,19 @@ for i = 1:length(alpha)
     for k = 2 : length(time)
         dt = time(k) - time(k-1);
 
-        AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), alpha(i), beta);
-
+        if ff(i)
+            AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), value(i), beta);            
+        else
+            if k>2
+                Edd = mean(dd(max(1,k-1-value(i)):k-2, :, :), 1);
+                Edd = reshape(Edd, size(Edd,2), size(Edd,3));
+                AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), Edd, 1);
+            else
+                AHRS.UPDATE(dt, gyroscope(k,:), accelerometer(k,:), magnetometer(k,:), 1, 1);
+            end
+            dd(k-1,:,:) = AHRS.d*AHRS.d';
+        end
+        
         results(i).kalman_quaternion(k,:) = AHRS.q;
         results(i).kalman_omega(k,:) = AHRS.omega;
         results(i).kalman_bias(k,:) = AHRS.bias;
@@ -139,9 +170,14 @@ for i = 1:length(alpha)
     
     clearvars AHRS
 end
-results(1).kalman_Q(1,:,:) = results(1).kalman_Q(end,:,:);  % correct theoretical Q initial matrix Q
-disp('Done');
 
+% correct theoretical Q initial matrix Q
+i = find(extractfield(results, 'value')==-1, 1);
+if ~isempty(i)
+    results(i).kalman_Q(1,:,:) = results(1).kalman_Q(2,:,:);  
+end
+
+disp('Done');
 
 save('results.mat', 'time', 'results', '-v7.3');
 disp('Saved results.mat');
