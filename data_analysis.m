@@ -555,35 +555,49 @@ legend([a, b])
 
 
 %% Quaternion error
+clearvars -except results time
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results150.mat');
+    load('results.mat');
 end
 
 ff = extractfield(results, 'ff');
-results = results(ff==true);
+if iscell(ff)
+    ff = cell2mat(ff);
+end
+results2 = results(ff==true);
 
-na = length(results);
-nq = size(results(1).MEKF_q_e, 2);
+if length(results2)==1
+    disp('There are no points to plot.');
+end
+
+na = length(results2);
+nq = size(results2(1).MEKF_q_e, 2);
 
 qe.mean = zeros(na, nq);
 qe.cov = zeros(na, nq, nq);
 
+% Rotate yaw axis 90 degrees
 for i = 1:na
-    qe.mean(i, :) = mean(results(i).MEKF_q_e);
-    qe.cov(i, :, :) = covariance(results(i).MEKF_q_e);
+    for j = 1:size(results2(1).MEKF_q_e, 1)
+        results2(i).MEKF_q_e(j,:) =  -quatProd([0;0;cos(-pi/4);sin(-pi/4)], results2(i).MEKF_q_e(j,:)');
+    end
+end
+
+for i = 1:na
+    qe.mean(i, :) = mean(results2(i).MEKF_q_e);
+    qe.cov(i, :, :) = covariance(results2(i).MEKF_q_e);
 end
 
 true_mean = qe.mean(1,:);
 true_cov = squeeze(qe.cov(1,:,:));
-no_appr_mean = qe.mean(2,:);
-no_appr_cov = squeeze(qe.cov(2,:,:));
-qe.mean = qe.mean(3:end,:);
-qe.cov = qe.cov(3:end,:,:);
 
-alpha = extractfield(results, 'value');
-alpha = alpha(3:end);
+qe.mean = qe.mean(2:end,:);
+qe.cov = qe.cov(2:end,:,:);
+
+alpha = extractfield(results2, 'value');
+alpha = alpha(2:end);
 
 %[~, im] = min(vecnorm(qe.mean(:, 1:4)-[0,0,0,1], 2, 2));
 [~, im] = min(1-dot(qe.mean, repmat([0,0,0,1], length(qe.mean), 1), 2));
@@ -595,7 +609,6 @@ hold on;
 plot(alpha, qe.mean(:, 1));
 plot(alpha(im), qe.mean(im,1), '*c');
 plot(alpha, ones(size(alpha))*true_mean(1), '--k');
-plot(alpha, ones(size(alpha))*no_appr_mean(1), '--r');
 title('Mean of quaternion error against alpha');
 ylabel('$\bar q_{1e}$', 'interpreter', 'latex');
 grid;
@@ -604,7 +617,6 @@ hold on;
 plot(alpha, qe.mean(:, 2));
 plot(alpha(im), qe.mean(im,2), '*c');
 plot(alpha, ones(size(alpha))*true_mean(2), '--k');
-plot(alpha, ones(size(alpha))*no_appr_mean(2), '--r');
 ylabel('$\bar q_{2e}$', 'interpreter', 'latex');
 grid;
 subplot(4, 1, 3);
@@ -612,7 +624,6 @@ hold on;
 plot(alpha, qe.mean(:, 3));
 plot(alpha(im), qe.mean(im,3), '*c');
 plot(alpha, ones(size(alpha))*true_mean(3), '--k');
-plot(alpha, ones(size(alpha))*no_appr_mean(3), '--r');
 ylabel('$\bar q_{3e}$', 'interpreter', 'latex');
 grid;
 subplot(4, 1, 4);
@@ -620,11 +631,10 @@ hold on;
 plot(alpha, qe.mean(:, 4));
 plot(alpha(im), qe.mean(im,4), '*c');
 plot(alpha, ones(size(alpha))*true_mean(4), '--k');
-plot(alpha, ones(size(alpha))*no_appr_mean(4), '--r');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\bar q_{4e}$', 'interpreter', 'latex');
 grid;
-legend('varying alpha', 'minimum', 'real Q', 'no approx alpha');
+legend('varying alpha', 'minimum', 'estimated Q');
 
 figure;
 subplot(4, 1, 1);
@@ -632,7 +642,6 @@ hold on;
 plot(alpha, qe.cov(:, 1, 1));
 plot(alpha(ic), qe.cov(ic, 1, 1), '*c');
 plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
-plot(alpha, ones(size(alpha))*no_appr_cov(1,1), '--r');
 title('Variance of quaternion error against alpha');
 ylabel('$\mathrm{Var}(q_{1e})$', 'interpreter', 'latex');
 grid;
@@ -641,7 +650,6 @@ hold on;
 plot(alpha, qe.cov(:, 2, 2));
 plot(alpha(ic), qe.cov(ic, 2, 2), '*c');
 plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
-plot(alpha, ones(size(alpha))*no_appr_cov(2,2), '--r');
 ylabel('$\mathrm{Var}(q_{2e})$', 'interpreter', 'latex');
 grid;
 subplot(4, 1, 3);
@@ -649,7 +657,6 @@ hold on;
 plot(alpha, qe.cov(:, 3, 3));
 plot(alpha(ic), qe.cov(ic, 3, 3), '*c');
 plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
-plot(alpha, ones(size(alpha))*no_appr_cov(3,3), '--r');
 ylabel('$\mathrm{Var}(q_{3e})$', 'interpreter', 'latex');
 grid;
 subplot(4, 1, 4);
@@ -657,11 +664,10 @@ hold on;
 plot(alpha, qe.cov(:, 4, 4));
 plot(alpha(ic), qe.cov(ic, 4, 4), '*c');
 plot(alpha, ones(size(alpha))*true_cov(4,4), '--k');
-plot(alpha, ones(size(alpha))*no_appr_cov(4,4), '--r');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\mathrm{Var}(q_{4e})$', 'interpreter', 'latex');
 grid;
-legend('varying alpha', 'minimum', 'real Q', 'no approx alpha');
+legend('varying alpha', 'minimum', 'estimated Q');
 
 
 %% Euler angles error against alpha
@@ -669,7 +675,7 @@ clearvars -except results time
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results150.mat');
+    load('results.mat');
 end
 
 ff = extractfield(results, 'ff');
@@ -685,8 +691,8 @@ end
 na = length(results2);
 ne = size(results2(1).MEKF_euler_e, 2);
 
-eul.mean = zeros(na, ne);
-eul.cov = zeros(na, ne, ne);
+eul_a.mean = zeros(na, ne);
+eul_a.cov = zeros(na, ne, ne);
 
 % Rotate yaw axis 90 degrees
 for i = 1:na
@@ -694,74 +700,177 @@ for i = 1:na
 end
 
 for i = 1:na
-    eul.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
-    eul.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
+    eul_a.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
+    eul_a.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
-true_mean = eul.mean(1,:);
-true_cov = squeeze(eul.cov(1,:,:));
+true_mean = eul_a.mean(1,:);
+true_cov = squeeze(eul_a.cov(1,:,:));
 
-eul.mean = eul.mean(2:end,:);
-eul.cov = eul.cov(2:end,:,:);
+eul_a.mean = eul_a.mean(2:end,:);
+eul_a.cov = eul_a.cov(2:end,:,:);
 
 alpha = extractfield(results2, 'value');
 alpha = alpha(2:end);
 
-[~, im] = min(vecnorm(eul.mean(:, 1:3), 2, 2));
-[~, ic] = min(sum(sum(abs(eul.cov), 3), 2));
+[~, im] = min(vecnorm(eul_a.mean(:, 1:3), 2, 2));
+[~, ic] = min(sum(sum(abs(eul_a.cov), 3), 2));
 
 
 figure;
 subplot(3, 1, 1);
 hold on;
-plot(alpha, eul.mean(:, 1));
-plot(alpha(im), eul.mean(im,1), '*c');
+plot(alpha, eul_a.mean(:, 1));
+plot(alpha(im), eul_a.mean(im,1), '*c');
 plot(alpha, ones(size(alpha))*true_mean(1), '--k');
 title('Mean of euler angle error against alpha');
 ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 2);
 hold on;
-plot(alpha, eul.mean(:, 2));
-plot(alpha(im), eul.mean(im,2), '*c');
+plot(alpha, eul_a.mean(:, 2));
+plot(alpha(im), eul_a.mean(im,2), '*c');
 plot(alpha, ones(size(alpha))*true_mean(2), '--k');
 ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
-plot(alpha, eul.mean(:, 3));
-plot(alpha(im), eul.mean(im,3), '*c');
+plot(alpha, eul_a.mean(:, 3));
+plot(alpha(im), eul_a.mean(im,3), '*c');
 plot(alpha, ones(size(alpha))*true_mean(3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
-legend('varying alpha', 'minimum', 'real Q');
+legend('varying alpha', 'minimum', 'estimated Q');
 
 figure;
 subplot(3, 1, 1);
 hold on;
-plot(alpha, eul.cov(:, 1, 1));
-plot(alpha(ic), eul.cov(ic, 1, 1), '*c');
+plot(alpha, eul_a.cov(:, 1, 1));
+plot(alpha(ic), eul_a.cov(ic, 1, 1), '*c');
 plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
 title('Variance of euler angle error against alpha');
 ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 2);
 hold on;
-plot(alpha, eul.cov(:, 2, 2));
-plot(alpha(ic), eul.cov(ic, 2, 2), '*c');
+plot(alpha, eul_a.cov(:, 2, 2));
+plot(alpha(ic), eul_a.cov(ic, 2, 2), '*c');
 plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
-plot(alpha, eul.cov(:, 3, 3));
-plot(alpha(ic), eul.cov(ic, 3, 3), '*c');
+plot(alpha, eul_a.cov(:, 3, 3));
+plot(alpha(ic), eul_a.cov(ic, 3, 3), '*c');
 plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
-legend('varying alpha', 'minimum', 'real Q');
+legend('varying alpha', 'minimum', 'estimated Q');
+
+
+%% Angular rates error against alpha
+clearvars -except results time omega
+close all
+
+if ~exist('results') || ~exist('time') || ~exist('omega')
+    load('results.mat');
+end
+
+ff = extractfield(results, 'ff');
+if iscell(ff)
+    ff = cell2mat(ff);
+end
+
+results2 = results(ff==true);
+
+if length(results2)==1
+    disp('There are no points to plot.');
+end
+
+na = length(results2);
+ne = size(results2(1).kalman_omega, 2);
+l = sum(isnan(omega(:,1)));     % some of omega elements are NaN. they'll be filtered out
+
+om_a.mean = zeros(na, ne);
+om_a.cov = zeros(na, ne, ne);
+
+ome = zeros(na, size(omega,1)-l, ne);
+
+% Calculate error
+for i = 1:na
+    ome(i,:,:) =  results2(i).kalman_omega(l+1:end,:) - omega(l+1:end,:);
+end
+
+for i = 1:na
+    om_a.mean(i, :) = abs(mean(ome(i,:,:)));
+    om_a.cov(i, :, :) = covariance(reshape(ome(i,:,:), size(ome,2), size(ome,3)));
+end
+
+true_mean = om_a.mean(1,:);
+true_cov = squeeze(om_a.cov(1,:,:));
+
+om_a.mean = om_a.mean(2:end,:);
+om_a.cov = om_a.cov(2:end,:,:);
+
+alpha = extractfield(results2, 'value');
+alpha = alpha(2:end);
+
+[~, im] = min(vecnorm(om_a.mean(:, 1:2), 2, 2));
+[~, ic] = min(sum(sum(abs(om_a.cov), 3), 2));
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(alpha, om_a.mean(:, 1));
+plot(alpha(im), om_a.mean(im,1), '*c');
+plot(alpha, ones(size(alpha))*true_mean(1), '--k');
+title('Mean of angular rates error against alpha');
+ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 2);
+hold on;
+plot(alpha, om_a.mean(:, 2));
+plot(alpha(im), om_a.mean(im,2), '*c');
+plot(alpha, ones(size(alpha))*true_mean(2), '--k');
+ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 3);
+hold on;
+plot(alpha, om_a.mean(:, 3));
+plot(alpha(im), om_a.mean(im,3), '*c');
+plot(alpha, ones(size(alpha))*true_mean(3), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
+grid;
+legend('varying alpha', 'minimum', 'estimated Q');
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(alpha, om_a.cov(:, 1, 1));
+plot(alpha(ic), om_a.cov(ic, 1, 1), '*c');
+plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
+title('Variance of angular rates error against alpha');
+ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 2);
+hold on;
+plot(alpha, om_a.cov(:, 2, 2));
+plot(alpha(ic), om_a.cov(ic, 2, 2), '*c');
+plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
+ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+subplot(3, 1, 3);
+hold on;
+plot(alpha, om_a.cov(:, 3, 3));
+plot(alpha(ic), om_a.cov(ic, 3, 3), '*c');
+plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
+xlabel('$\alpha$', 'interpreter', 'latex');
+ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
+grid;
+legend('varying alpha', 'minimum', 'estimated Q');
 
 
 %% Euler angles error against mean window
@@ -769,7 +878,7 @@ clearvars -except results time
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results150.mat');
+    load('results.mat');
 end
 
 ff = extractfield(results, 'ff');
@@ -783,88 +892,206 @@ results2 = results(or(value==-1, ff==false));
 na = length(results2);
 ne = size(results2(1).MEKF_euler_e, 2);
 
-eul.mean = zeros(na, ne);
-eul.cov = zeros(na, ne, ne);
+eul_w.mean = zeros(na, ne);
+eul_w.cov = zeros(na, ne, ne);
 
 % Rotate yaw axis 90 degrees
-for i = 1:na
-    results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
-end
+% for i = 1:na
+%     results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
+% end
 
 for i = 1:na
-    eul.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
-    eul.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
+    eul_w.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
+    eul_w.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
-true_mean = eul.mean(1,:);
-true_cov = squeeze(eul.cov(1,:,:));
+true_mean = eul_w.mean(1,:);
+true_cov = squeeze(eul_w.cov(1,:,:));
 
-eul.mean = eul.mean(2:end,:);
-eul.cov = eul.cov(2:end,:,:);
+eul_w.mean = eul_w.mean(2:end,:);
+eul_w.cov = eul_w.cov(2:end,:,:);
 
 value = extractfield(results2, 'value');
 value = value(2:end);
 
-[~, im] = min(vecnorm(eul.mean(:, 1:3), 2, 2));
-[~, ic] = min(sum(sum(abs(eul.cov), 3), 2));
+[~, im] = min(vecnorm(eul_w.mean(:, 1:2), 2, 2));
+[~, ic] = min(sum(sum(abs(eul_w.cov), 3), 2));
 
 figure;
 subplot(3, 1, 1);
 hold on;
-plot(value, eul.mean(:, 1));
-plot(value(im), eul.mean(im,1), '*c');
+plot(value, eul_w.mean(:, 1));
+plot(value(im), eul_w.mean(im,1), '*c');
 plot(value, ones(size(value))*true_mean(1), '--k');
 title('Mean of euler angle error against window size of mean');
 ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
 subplot(3, 1, 2);
 hold on;
-plot(value, eul.mean(:, 2));
-plot(value(im), eul.mean(im,2), '*c');
+plot(value, eul_w.mean(:, 2));
+plot(value(im), eul_w.mean(im,2), '*c');
 plot(value, ones(size(value))*true_mean(2), '--k');
 ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
 subplot(3, 1, 3);
 hold on;
-plot(value, eul.mean(:, 3));
-plot(value(im), eul.mean(im,3), '*c');
+plot(value, eul_w.mean(:, 3));
+plot(value(im), eul_w.mean(im,3), '*c');
 plot(value, ones(size(value))*true_mean(3), '--k');
 xlabel('window size [points]');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
-legend('varying window', 'minimum', 'real Q', 'location', 'southwest');
+xlim([value(1), value(end)]);
+legend('varying window', 'minimum', 'estimated Q', 'location', 'southwest');
 
 figure;
 subplot(3, 1, 1);
 hold on;
-plot(value, eul.cov(:, 1, 1));
-plot(value(ic), eul.cov(ic, 1, 1), '*c');
+plot(value, eul_w.cov(:, 1, 1));
+plot(value(ic), eul_w.cov(ic, 1, 1), '*c');
 plot(value, ones(size(value))*true_cov(1,1), '--k');
 title('Variance of euler angle error against window size of mean');
 ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
 subplot(3, 1, 2);
 hold on;
-plot(value, eul.cov(:, 2, 2));
-plot(value(ic), eul.cov(ic, 2, 2), '*c');
+plot(value, eul_w.cov(:, 2, 2));
+plot(value(ic), eul_w.cov(ic, 2, 2), '*c');
 plot(value, ones(size(value))*true_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
 subplot(3, 1, 3);
 hold on; 
-plot(value, eul.cov(:, 3, 3));
-plot(value(ic), eul.cov(ic, 3, 3), '*c');
+plot(value, eul_w.cov(:, 3, 3));
+plot(value(ic), eul_w.cov(ic, 3, 3), '*c');
 plot(value, ones(size(value))*true_cov(3,3), '--k');
 xlabel('window size [points]');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
-legend('varying window', 'minimum', 'real Q', 'location', 'northwest');
+xlim([value(1), value(end)]);
+legend('varying window', 'minimum', 'estimated Q', 'location', 'northwest');
+
+
+%% Angular rates error against mean window
+clearvars -except results time omega
+close all
+
+if ~exist('results') || ~exist('time') || ~exist('omega')
+    load('results.mat');
+end
+
+ff = extractfield(results, 'ff');
+if iscell(ff)
+    ff = cell2mat(ff);
+end
+value = extractfield(results, 'value');
+
+results2 = results(or(value==-1, ff==false));
+
+na = length(results2);
+ne = size(results2(1).kalman_omega, 2);
+l = sum(isnan(omega(:,1)));     % some of omega elements are NaN. they'll be filtered out
+
+om_w.mean = zeros(na, ne);
+om_w.cov = zeros(na, ne, ne);
+
+ome = zeros(na, size(omega,1)-l, ne);
+
+% Calculate error
+for i = 1:na
+    ome(i,:,:) =  results2(i).kalman_omega(l+1:end,:) - omega(l+1:end,:);
+end
+
+for i = 1:na
+    om_w.mean(i, :) = abs(mean(ome(i,:,:)));
+    om_w.cov(i, :, :) = covariance(reshape(ome(i,:,:), size(ome,2), size(ome,3)));
+end
+
+true_mean = om_w.mean(1,:);
+true_cov = squeeze(om_w.cov(1,:,:));
+
+om_w.mean = om_w.mean(2:end,:);
+om_w.cov = om_w.cov(2:end,:,:);
+
+value = extractfield(results2, 'value');
+value = value(2:end);
+
+[~, im] = min(vecnorm(om_w.mean(:, 1:2), 2, 2));
+[~, ic] = min(sum(sum(abs(om_w.cov), 3), 2));
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(value, om_w.mean(:, 1));
+plot(value(im), om_w.mean(im,1), '*c');
+plot(value, ones(size(value))*true_mean(1), '--k');
+title('Mean of angular rate error against window size of mean');
+ylabel('$\bar p_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+subplot(3, 1, 2);
+hold on;
+plot(value, om_w.mean(:, 2));
+plot(value(im), om_w.mean(im,2), '*c');
+plot(value, ones(size(value))*true_mean(2), '--k');
+ylabel('$\bar q_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+subplot(3, 1, 3);
+hold on;
+plot(value, om_w.mean(:, 3));
+plot(value(im), om_w.mean(im,3), '*c');
+plot(value, ones(size(value))*true_mean(3), '--k');
+xlabel('window size [points]');
+ylabel('$\bar r_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+legend('varying window', 'minimum', 'estimated Q', 'location', 'southwest');
+
+figure;
+subplot(3, 1, 1);
+hold on;
+plot(value, om_w.cov(:, 1, 1));
+plot(value(ic), om_w.cov(ic, 1, 1), '*c');
+plot(value, ones(size(value))*true_cov(1,1), '--k');
+title('Variance of angular rate error against window size of mean');
+ylabel('$\mathrm{Var}(p_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+subplot(3, 1, 2);
+hold on;
+plot(value, om_w.cov(:, 2, 2));
+plot(value(ic), om_w.cov(ic, 2, 2), '*c');
+plot(value, ones(size(value))*true_cov(2,2), '--k');
+ylabel('$\mathrm{Var}(q_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+subplot(3, 1, 3);
+hold on; 
+plot(value, om_w.cov(:, 3, 3));
+plot(value(ic), om_w.cov(ic, 3, 3), '*c');
+plot(value, ones(size(value))*true_cov(3,3), '--k');
+xlabel('window size [points]');
+ylabel('$\mathrm{Var}(r_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
+grid;
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+legend('varying window', 'minimum', 'estimated Q', 'location', 'northwest');
 
 
 %% Functions

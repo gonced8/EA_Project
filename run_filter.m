@@ -104,7 +104,7 @@ MEKF_euler_e = zeros(length(kalman_quaternion),3);
 MEKF_euler = zeros(length(kalman_quaternion),3);
 
 ff = true;     % forgetting factor flag
-value = [-1];
+value = -1;
 
 % update Q matrix with forgetting factor
 npoints = 51;
@@ -115,9 +115,10 @@ ff = [ff, true(1,length(alpha_value))];
 
 % update Q matrix with estimated value
 npoints = 55;
-window_max = 20000;
+window_max = 40000;
+window_max = min(window_max, length(time));
 window_value = logspace(0, log10(window_max), npoints);
-window_value = ceil(window_value); % value must be an integer.
+window_value = round(window_value); % value must be an integer.
 window_value = unique(window_value); % Remove duplicates.
 value = [value, window_value];
 ff = [ff, false(1,length(window_value))];
@@ -192,7 +193,7 @@ end
 
 disp('Done');
 
-save('results150.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
+save('results.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
 disp('Saved results.mat');
 
 %% END OF CODE
