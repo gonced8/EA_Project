@@ -1,4 +1,4 @@
-load('results150s.mat');
+load('results150.mat');
 
 npoints = length(results);
 
