@@ -434,6 +434,7 @@ legend('varying alpha', 'minimum', 'real Q', 'no approx alpha');
 
 
 %% Euler angles error against alpha
+clearvars -except results time
 close all
 
 if ~exist('results') || ~exist('time')
@@ -441,21 +442,29 @@ if ~exist('results') || ~exist('time')
 end
 
 ff = extractfield(results, 'ff');
-results = results(ff==true);
+if iscell(ff)
+    ff = cell2mat(ff);
+end
+results2 = results(ff==true);
 
-if length(results)==1 && results(1).value==-1
+if length(results2)==1
     disp('There are no points to plot.');
 end
 
-na = length(results);
-ne = size(results(1).MEKF_euler_e, 2);
+na = length(results2);
+ne = size(results2(1).MEKF_euler_e, 2);
 
 eul.mean = zeros(na, ne);
 eul.cov = zeros(na, ne, ne);
 
+% Rotate yaw axis 90 degrees
 for i = 1:na
-    eul.mean(i, :) = mean(results(i).MEKF_euler_e);
-    eul.cov(i, :, :) = covariance(results(i).MEKF_euler_e);
+    results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
+end
+
+for i = 1:na
+    eul.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
+    eul.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
 true_mean = eul.mean(1,:);
@@ -464,7 +473,7 @@ true_cov = squeeze(eul.cov(1,:,:));
 eul.mean = eul.mean(2:end,:);
 eul.cov = eul.cov(2:end,:,:);
 
-alpha = extractfield(results, 'value');
+alpha = extractfield(results2, 'value');
 alpha = alpha(2:end);
 
 [~, im] = min(vecnorm(eul.mean(:, 1:3), 2, 2));
@@ -525,6 +534,7 @@ legend('varying alpha', 'minimum', 'real Q');
 
 
 %% Euler angles error against mean window
+clearvars -except results time
 close all
 
 if ~exist('results') || ~exist('time')
@@ -532,19 +542,27 @@ if ~exist('results') || ~exist('time')
 end
 
 ff = extractfield(results, 'ff');
+if iscell(ff)
+    ff = cell2mat(ff);
+end
 value = extractfield(results, 'value');
 
-results = results(value==-1+ff==false);
+results2 = results(or(value==-1, ff==false));
 
-na = length(results);
-ne = size(results(1).MEKF_euler_e, 2);
+na = length(results2);
+ne = size(results2(1).MEKF_euler_e, 2);
 
 eul.mean = zeros(na, ne);
 eul.cov = zeros(na, ne, ne);
 
+% Rotate yaw axis 90 degrees
 for i = 1:na
-    eul.mean(i, :) = abs(mean(results(i).MEKF_euler_e));
-    eul.cov(i, :, :) = covariance(results(i).MEKF_euler_e);
+    results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
+end
+
+for i = 1:na
+    eul.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
+    eul.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
 true_mean = eul.mean(1,:);
@@ -553,6 +571,7 @@ true_cov = squeeze(eul.cov(1,:,:));
 eul.mean = eul.mean(2:end,:);
 eul.cov = eul.cov(2:end,:,:);
 
+value = extractfield(results2, 'value');
 value = value(2:end);
 
 [~, im] = min(vecnorm(eul.mean(:, 1:3), 2, 2));
@@ -585,7 +604,7 @@ xlabel('window size [points]');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
-legend('varying window', 'minimum', 'real Q');
+legend('varying window', 'minimum', 'real Q', 'location', 'southwest');
 
 figure;
 subplot(3, 1, 1);
@@ -606,7 +625,7 @@ ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex')
 grid;
 set(gca, 'XScale', 'log');
 subplot(3, 1, 3);
-hold on;
+hold on; 
 plot(value, eul.cov(:, 3, 3));
 plot(value(ic), eul.cov(ic, 3, 3), '*c');
 plot(value, ones(size(value))*true_cov(3,3), '--k');
@@ -614,7 +633,7 @@ xlabel('window size [points]');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
-legend('varying window', 'minimum', 'real Q');
+legend('varying window', 'minimum', 'real Q', 'location', 'northwest');
 
 
 %% Functions

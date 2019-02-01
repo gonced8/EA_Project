@@ -329,6 +329,13 @@ classdef MEKF < handle
             qk_1p = obj.q;
             Pk_1p = obj.P;
             
+            if alpha==-1
+                Qk = [(obj.sigma_v^2 * dt + 1/3 * obj.sigma_w^2 * dt^3) * I3,     (1/2 * obj.sigma_w^2 * dt^2) * I3 ;
+                                  (1/2 * obj.sigma_w^2 * dt^2) * I3,                  (obj.sigma_w^2 * dt) * I3    ];
+            else
+                Qk = obj.Q;
+            end
+            
             %% Prediction (time update)  
             % Depolarize bias from Gyroscope
             omek = Gyroscope' - betakm;
@@ -345,19 +352,12 @@ classdef MEKF < handle
                     O3             I3   ];
             G = [-I3 O3 ;
                   O3 I3];
-            Pkm = Fk_1 * Pk_1p * Fk_1' + G * obj.Q * G';
+            Pkm = Fk_1 * Pk_1p * Fk_1' + G * Qk * G';
             
             % Compute attitude matrix
             Akm = quatToAtt(qkm);
             
-            %% Correction (measurement update)
-            if alpha==-1
-                Qk = [(obj.sigma_v^2 * dt + 1/3 * obj.sigma_w^2 * dt^3) * I3,     (1/2 * obj.sigma_w^2 * dt^2) * I3 ;
-                                  (1/2 * obj.sigma_w^2 * dt^2) * I3,                  (obj.sigma_w^2 * dt) * I3    ];
-            else
-                Qk = obj.Q;
-            end
-            
+            %% Correction (measurement update)            
             Rk = obj.R;
             
             yk = zeros(length(Rk), 1);
@@ -441,7 +441,7 @@ classdef MEKF < handle
             % Update state covariance
             if length(alpha)>1
                 Ed = alpha;
-                Qk = Kk*Ed*Kk';
+                Qk = G'*Kk*Ed*Kk'*G;
             elseif alpha~=-1
                 Kkdk = Kk*dk;
                 Qk = alpha*Qk + (1-alpha)*G'*(Kkdk*(Kkdk'))*G;

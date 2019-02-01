@@ -18,6 +18,9 @@ fig=figure;
 hax=axes; 
 hold on
 plot(gyroscope)
+title('Gyroscope');
+xlabel('t [s]');
+ylabel('\omega [rad/s]');
 grid on
 
 start = 20000;
@@ -26,6 +29,8 @@ stop = 140000;
 line([start start],get(hax,'YLim'),'Color','red','LineStyle','--')
 line([stop stop],get(hax,'YLim'),'Color','red','LineStyle','--')
 hold off
+
+% saveas(gcf, 'figs/gyro', 'png');
 
 %% Get the subsets
 time_sensors = time_sensors(start:stop);
@@ -42,7 +47,7 @@ gyroscope = interp1(time_sensors, gyroscope, time);
 theta = cumtrapz(gyroscope, 1)*dt;
 
 %% Calculate Allan variance
-maxNumM = 1/dt;
+maxNumM = 0.5/dt;
 L = size(theta, 1);
 maxM = 2.^floor(log2(L/2));
 m = logspace(log10(1), log10(maxM), maxNumM).';
@@ -70,12 +75,14 @@ figure
 hold on
 plot(tau, adev)
 title('Allan Deviation')
-xlabel('\tau');
-ylabel('\sigma(\tau)')
+xlabel('\tau [s]');
+ylabel('\sigma(\tau) [rad/s]')
 grid on
 axis equal
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
+
+% saveas(gcf, 'figs/allan', 'png');
 
 %% Angle random walk
 % Find the index where the slope of the log-scaled Allan deviation is equal
@@ -101,7 +108,7 @@ title('Allan Deviation with Angle Random Walk')
 xlabel('\tau')
 ylabel('\sigma(\tau)')
 legend('\sigma_N')
-text(tauN, N, 'N')
+%text(tauN, N, 'N')
 grid on
 axis equal
 set(gca, 'XScale', 'log')
@@ -131,10 +138,17 @@ title('Allan Deviation with Rate Random Walk')
 xlabel('\tau')
 ylabel('\sigma(\tau)')
 legend('\sigma_K')
-text(tauK, K, 'K')
+%text(tauK, K, 'K')
 grid on
 axis equal
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
+
+title('Allan Deviation with ARW and RRW');
+xlabel('\tau [s]');
+ylabel('\sigma(\tau) [rad/s]');
+legend('\sigma(\tau)', '', 'ARW', '', 'RRW');
+
+% saveas(gcf, 'figs/ARW_RRW', 'png');
 
 clearvars -except N K

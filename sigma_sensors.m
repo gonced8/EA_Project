@@ -29,6 +29,9 @@ hold on
 plot(accelerometer)
 % plot(gyroscope)
 % plot(magnetometer)
+title('Accelerometer data');
+xlabel('t [s]');
+ylabel('a [m/s^2]');
 grid on
 
 start = 3000;
@@ -37,6 +40,8 @@ stop = 150000;
 line([start start],get(hax,'YLim'),'Color','red','LineStyle','--')
 line([stop stop],get(hax,'YLim'),'Color','red','LineStyle','--')
 hold off
+
+% saveas(gcf, 'figs/accelerometer', 'png');
 
 %% Get the subsets
 time_sensors = time_sensors(start:stop);
@@ -70,6 +75,10 @@ sigmasq_mag = var(magnetometer);
 sigma_gyr_k = mean(sqrt(sigmasq_gyr))
 sigma_acc_k = mean(sqrt(sigmasq_acc))
 sigma_mag_k = mean(sqrt(sigmasq_mag))
+
+sigma_acc_k_norm = mean(sqrt(sigmasq_acc))/norm(acc_mean)
+sigma_mag_k2_norm = mean(sqrt(sigmasq_mag))/norm(mag_mean)
+
 
 %% Compute the PSD
 na = 100;
