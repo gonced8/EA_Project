@@ -1,7 +1,9 @@
-load('results.mat');
+load('results150s.mat');
 
 npoints = length(results);
-alpha = zeros(npoints,1);
+
+ff = zeros(npoints,1);
+value = zeros(npoints,1);
 kalman_quaternion = cell(npoints,1);
 kalman_omega = cell(npoints,1);
 kalman_bias = cell(npoints,1);
@@ -12,7 +14,8 @@ MEKF_euler_e = cell(npoints,1);
 MEKF_euler = cell(npoints,1);
 
 for i = 1:npoints
-    alpha(i) = results(i).alpha;
+    ff(i) = results(i).ff;
+    value(i) = results(i).value;
     kalman_quaternion{i} = results(i).kalman_quaternion;
     kalman_omega{i} = results(i).kalman_omega;
     kalman_bias{i} = results(i).kalman_bias;
@@ -22,3 +25,4 @@ for i = 1:npoints
     MEKF_euler_e{i} = results(i).MEKF_euler_e;
     MEKF_euler{i} = results(i).MEKF_euler;
 end
+

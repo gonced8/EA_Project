@@ -32,7 +32,7 @@ omega = [vehicle_attitude_0.rollspeed vehicle_attitude_0.pitchspeed vehicle_atti
 dt = mode(diff(time_sensors));
 time = (max(time_sensors(1), time_optitrack(1)) ...
         :dt: ...
-        180)';%min(time_sensors(end), time_optitrack(end)))';
+        150)';%min(time_sensors(end), time_optitrack(end)))';
 
 gyroscope = interp1(time_sensors, gyroscope, time);
 accelerometer = interp1(time_sensors, accelerometer, time);
@@ -192,7 +192,7 @@ end
 
 disp('Done');
 
-save('results.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
+save('results150s.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
 disp('Saved results.mat');
 
 %% END OF CODE
