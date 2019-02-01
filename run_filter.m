@@ -192,7 +192,7 @@ end
 
 disp('Done');
 
-save('results150s.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
+save('results150.mat', 'time', 'results', 'optitrack', 'omega', '-v7.3');
 disp('Saved results.mat');
 
 %% END OF CODE

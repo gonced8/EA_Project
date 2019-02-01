@@ -214,7 +214,7 @@ end
 
 figure
 subplot(3,1,1)
-title('Estimation error')
+title('PSD of estimation error')
 hold on
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
@@ -244,7 +244,7 @@ end
 hold off
 grid
 ylabel('$\delta\psi [rad]$','Interpreter','latex','fontsize',12.0)
-xlabel('Frequency [\frac{rad}{s}]','Interpreter','latex','fontsize',12.0)
+xlabel('$Frequency \ [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 a = '';
 b = '';
 if ~isempty(alpha_s)
@@ -254,7 +254,6 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d vs Optitrack', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b])
-
 
 
 figure
@@ -341,7 +340,7 @@ subplot(3,1,1)
 title('Error angular velocities')
 hold on;
 for j = 1:n_plot
-    plot(time, kalman_bias{index_plot(j)}(:,1) - omega(:,1))
+    plot(time, kalman_omega{index_plot(j)}(:,1) - omega(:,1))
 end
 hold off;
 grid
@@ -349,7 +348,7 @@ ylabel('$\mathrm{error} \; p [\frac{rad}{s}]$','Interpreter','latex','fontsize',
 subplot(3,1,2)
 hold on;
 for j = 1:n_plot
-    plot(time, kalman_bias{index_plot(j)}(:,2) - omega(:,2))
+    plot(time, kalman_omega{index_plot(j)}(:,2) - omega(:,2))
 end
 hold off;
 grid;
@@ -357,7 +356,7 @@ ylabel('$\mathrm{error} \; q [\frac{rad}{s}]$','Interpreter','latex','fontsize',
 subplot(3,1,3)
 hold on;
 for j = 1:n_plot
-    plot(time, kalman_bias{index_plot(j)}(:,3) - omega(:,3))
+    plot(time, kalman_omega{index_plot(j)}(:,3) - omega(:,3))
 end
 hold off;
 grid
@@ -479,14 +478,14 @@ plot(value_plot, mean_plot);
 plot(value_plot, trace_ref*ones(length(value) - 1,1), 'r--');
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
-xlabel('Alpha');
+xlabel('Alpha/Window size');
 ylabel('Mean value of the trace of Q');
 
 subplot(2,1,2); hold on; grid on;
 plot(value_plot,var_plot);
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
-xlabel('Alpha');
+xlabel('Alpha/Window size');
 ylabel('Variance of the trace of Q');
 
 
@@ -522,8 +521,6 @@ if ~isempty(window_Q)
     b = arrayfun(@(mode) sprintf('MEKF window = %d', window_Q(mode)), 1:length(window_Q), 'UniformOutput', false);
 end
 legend([a, b])
-
-
 
     % Using pwelch
     
@@ -561,7 +558,7 @@ legend([a, b])
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results.mat');
+    load('results150.mat');
 end
 
 ff = extractfield(results, 'ff');
@@ -671,7 +668,7 @@ legend('varying alpha', 'minimum', 'real Q', 'no approx alpha');
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results.mat');
+    load('results150.mat');
 end
 
 ff = extractfield(results, 'ff');
@@ -762,7 +759,7 @@ legend('varying alpha', 'minimum', 'real Q');
 close all
 
 if ~exist('results') || ~exist('time')
-    load('results.mat');
+    load('results150.mat');
 end
 
 ff = extractfield(results, 'ff');
