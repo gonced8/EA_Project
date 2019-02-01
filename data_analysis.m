@@ -8,13 +8,38 @@ if ~exist('results') || ~exist('time')
     get_data;
 end
 
-alpha_show = [1; 0.7];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
-n_show = length(alpha_show);
-index_show = zeros(length(alpha_show), 1);
+% INPUTS -------- %
+alpha_s = [-1; 0.7; 1];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
+window_s = [3000; 10000];
+conf_interval = false;
+%-----------------%
 
-for i = 1:length(index_show)
-    [~, index_show(i)] = min(abs(alpha - alpha_show(i)));
+index_middle = sum(ff); % gives the number of iterations done with forgetting factor
+
+if ~isempty(alpha_s)
+    index_alpha = zeros(length(alpha_s), 1);
+    for i = 1:length(alpha_s)
+        [~, index_alpha(i)] = min(abs(value(1:index_middle) - alpha_s(i)));
+    end
 end
+
+if ~isempty(window_s)
+    index_window = zeros(length(window_s), 1);
+    for i = 1:length(window_s)
+        [~, index_window(i)] = min(abs(value(index_middle+1:end) - window_s(i)));
+    end
+    index_window = index_window + index_middle;
+end
+
+if ~exist('index_alpha')
+    index_alpha = [];
+end
+if ~exist('index_window')
+   index_window = [];
+end
+
+index_plot = [index_alpha; index_window];
+n_plot = length(index_plot);
 
 optitrack_euler = zeros(length(time), 3);
 
@@ -22,14 +47,13 @@ for i = 1:length(time)
     optitrack_euler(i,:) = quatToEuler(optitrack(i,:));
 end
 
-
 figure
 subplot(4,1,1)
 hold on
 title('MEKF - Quaternion')
 plot(time, optitrack(:, 1))
-for j = 1:n_show
-    plot(time, kalman_quaternion{index_show(j)}(:, 1))
+for j = 1:n_plot
+    plot(time, kalman_quaternion{index_plot(j)}(:, 1))
 end
 hold off
 grid
@@ -37,8 +61,8 @@ ylabel('$q_1$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,2)
 hold on
 plot(time, optitrack(:, 2))
-for j = 1:n_show
-    plot(time, kalman_quaternion{index_show(j)}(:, 2))
+for j = 1:n_plot
+    plot(time, kalman_quaternion{index_plot(j)}(:, 2))
 end
 hold off
 grid
@@ -46,8 +70,8 @@ ylabel('$q_2$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,3)
 hold on
 plot(time, optitrack(:, 3))
-for j = 1:n_show
-    plot(time, kalman_quaternion{index_show(j)}(:, 3))
+for j = 1:n_plot
+    plot(time, kalman_quaternion{index_plot(j)}(:, 3))
 end
 hold off
 grid
@@ -55,14 +79,22 @@ ylabel('$q_3$','Interpreter','latex','fontsize',12.0)
 subplot(4,1,4)
 hold on
 plot(time, optitrack(:, 4))
-for j = 1:n_show
-    plot(time, kalman_quaternion{index_show(j)}(:, 4))
+for j = 1:n_plot
+    plot(time, kalman_quaternion{index_plot(j)}(:, 4))
 end
 hold off
 ylabel('$q_4$','Interpreter','latex','fontsize',12.0)
 grid
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend(['Optitrack',arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_show(mode)), 1:n_show, 'UniformOutput', false)])
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend(['Optitrack', a, b])
 
 
 figure
@@ -70,8 +102,8 @@ subplot(3,1,1)
 title('Estimated Euler angles')
 hold on
 plot(time, optitrack_euler(:, 1))
-for j = 1:n_show
-    plot(time, MEKF_euler{index_show(j)}(:, 1))
+for j = 1:n_plot
+    plot(time, MEKF_euler{index_plot(j)}(:, 1))
 end
 hold off
 ylim([-0.5;0.5])
@@ -80,8 +112,8 @@ ylabel('$\phi [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
 plot(time, optitrack_euler(:, 2))
-for j = 1:n_show
-    plot(time, MEKF_euler{index_show(j)}(:, 2))
+for j = 1:n_plot
+    plot(time, MEKF_euler{index_plot(j)}(:, 2))
 end
 hold off
 ylim([-0.5;0.5])
@@ -90,76 +122,147 @@ ylabel('$\theta [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
 plot(time, optitrack_euler(:, 3))
-for j = 1:n_show
-    plot(time, MEKF_euler{index_show(j)}(:, 3))
+for j = 1:n_plot
+    plot(time, MEKF_euler{index_plot(j)}(:, 3))
 end
 hold off
 grid
 ylabel('$\psi [rad]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend(['Optitrack',arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_show(mode)), 1:n_show, 'UniformOutput', false)])
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend(['Optitrack', a, b])
+
 
 figure
 subplot(3,1,1)
 title('Estimation error')
 hold on
-for j = 1:n_show
-    plot(time, MEKF_euler_e{index_show(j)}(:,1))
-    plot(time, 3*kalman_sigma{index_show(j)}(:,1),'--')
-    plot(time, -3*kalman_sigma{index_show(j)}(:,1),'--')
+for j = 1:n_plot
+    plot(time, MEKF_euler_e{index_plot(j)}(:,1))
 end
-% plot(time, MEKF1_euler_e(:,1))
-% plot(time, MEKF2_euler_e(:,1))
-% plot(time, 3*kalman_sigma1(:,1),'r--')
-% plot(time, -3*kalman_sigma1(:,1),'r--')
-% plot(time, 3*kalman_sigma2(:,1),'b--')
-% plot(time, -3*kalman_sigma2(:,1),'b--')
+if conf_interval
+    for j = 1:n_plot
+        plot(time, 3*kalman_sigma{index_plot(j)}(:,1),'--')
+        plot(time, -3*kalman_sigma{index_plot(j)}(:,1),'--')
+    end
+end
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\delta\phi [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-for j = 1:n_show
-    plot(time, MEKF_euler_e{index_show(j)}(:,1))
-    plot(time, 3*kalman_sigma{index_show(j)}(:,1),'--')
-    plot(time, -3*kalman_sigma{index_show(j)}(:,1),'--')
+for j = 1:n_plot
+    plot(time, MEKF_euler_e{index_plot(j)}(:,2))
 end
-% plot(time, MEKF1_euler_e(:,2))
-% plot(time, MEKF2_euler_e(:,2))
-% plot(time, 3*kalman_sigma1(:,2),'r--')
-% plot(time, -3*kalman_sigma1(:,2),'r--')
-% plot(time, 3*kalman_sigma2(:,2),'b--')
-% plot(time, -3*kalman_sigma2(:,2),'b--')
+if conf_interval
+    for j = 1:n_plot
+        plot(time, 3*kalman_sigma{index_plot(j)}(:,2),'--')
+        plot(time, -3*kalman_sigma{index_plot(j)}(:,2),'--')
+    end
+end
 hold off
 ylim([-0.5;0.5])
 grid
 ylabel('$\delta\theta [rad]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-for j = 1:n_show
-    plot(time, MEKF_euler_e{index_show(j)}(:,1))
-    plot(time, 3*kalman_sigma{index_show(j)}(:,1),'--')
-    plot(time, -3*kalman_sigma{index_show(j)}(:,1),'--')
+for j = 1:n_plot
+    plot(time, MEKF_euler_e{index_plot(j)}(:,3))
 end
-% plot(time, MEKF1_euler_e(:,3))
-% plot(time, MEKF2_euler_e(:,3))
-% plot(time, 3*kalman_sigma1(:,3),'r--')
-% plot(time, -3*kalman_sigma1(:,3),'r--')
-% plot(time, 3*kalman_sigma2(:,3),'b--')
-% plot(time, -3*kalman_sigma2(:,3),'b--')
+if conf_interval
+    for j = 1:n_plot
+        plot(time, 3*kalman_sigma{index_plot(j)}(:,3),'--')
+        plot(time, -3*kalman_sigma{index_plot(j)}(:,3),'--')
+    end
+end
 hold off
 grid
 ylabel('$\delta\psi [rad]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend(arrayfun(@(mode) sprintf('MEKF alpha = %.2f vs Optitrack', alpha_show(mode)), 1:n_show, 'UniformOutput', false))
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f vs Optitrack', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d vs Optitrack', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend([a, b])
+
+    % Using pwelch
+
+fs = 1/(time(2)-time(1));
+P_error = cell(n_plot, 3); % Each line contains each axis error for each value of alpha/window
+f_error = cell(n_plot, 3);
+
+na = 5;
+
+for j = 1:n_plot
+    for i = 1:3
+       [P_error{j,i}, f_error{j,i}, ~] = pwelchrun(MEKF_euler_e{index_plot(j)}(:,i), na, fs); 
+    end
+end
+
+
+figure
+subplot(3,1,1)
+title('Estimation error')
+hold on
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+for j = 1:n_plot
+    plot(f_error{j,1}, P_error{j,1})
+end
+hold off
+grid
+ylabel('$\delta\phi [rad]$','Interpreter','latex','fontsize',12.0)
+subplot(3,1,2)
+hold on
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+for j = 1:n_plot
+    plot(f_error{j,2}, P_error{j,2})
+end
+hold off
+grid
+ylabel('$\delta\theta [rad]$','Interpreter','latex','fontsize',12.0)
+subplot(3,1,3)
+hold on
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+for j = 1:n_plot
+    plot(f_error{j,3}, P_error{j,3})
+end
+hold off
+grid
+ylabel('$\delta\psi [rad]$','Interpreter','latex','fontsize',12.0)
+xlabel('Frequency [\frac{rad}{s}]','Interpreter','latex','fontsize',12.0)
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f vs Optitrack', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d vs Optitrack', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend([a, b])
+
+
 
 figure
 subplot(3,1,1)
 title('Angular velocity')
 hold on
-for j = 1:n_show
-    plot(time, kalman_omega{index_show(j)}(:,1))
+for j = 1:n_plot
+    plot(time, kalman_omega{index_plot(j)}(:,1))
 end
 plot(time, omega(:,1))
 hold off
@@ -167,8 +270,8 @@ grid
 ylabel('$p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-for j = 1:n_show
-    plot(time, kalman_omega{index_show(j)}(:,2))
+for j = 1:n_plot
+    plot(time, kalman_omega{index_plot(j)}(:,2))
 end
 plot(time, omega(:,2))
 hold off
@@ -176,122 +279,177 @@ grid
 ylabel('$q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-for j = 1:n_show
-    plot(time, kalman_omega{index_show(j)}(:,3))
+for j = 1:n_plot
+    plot(time, kalman_omega{index_plot(j)}(:,3))
 end
 plot(time, omega(:,3))
 hold off
 grid
 ylabel('$r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend([arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_show(mode)), 1:n_show, 'UniformOutput', false),'OB'])
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend([a, b, 'OB'])
+
 
 figure
 subplot(3,1,1)
 title('Estimated bias')
 hold on
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,1))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,1))
 end
 hold off
 grid
 ylabel('$p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,2))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,2))
 end
 hold off
 grid
 ylabel('$q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,3))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,3))
 end
 hold off
 grid
 ylabel('$r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend(arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_show(mode)), 1:n_show, 'UniformOutput', false))
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend([a, b])
+
 
 figure
 subplot(3,1,1)
 title('Error angular velocities')
 hold on;
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,1) - omega(:,1))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,1) - omega(:,1))
 end
 hold off;
 grid
 ylabel('$\mathrm{error} \; p [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,2)
 hold on;
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,2) - omega(:,2))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,2) - omega(:,2))
 end
 hold off;
 grid;
 ylabel('$\mathrm{error} \; q [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 subplot(3,1,3)
 hold on;
-for j = 1:n_show
-    plot(time, kalman_bias{index_show(j)}(:,3) - omega(:,3))
+for j = 1:n_plot
+    plot(time, kalman_bias{index_plot(j)}(:,3) - omega(:,3))
 end
 hold off;
 grid
 ylabel('$\mathrm{error} \; r [\frac{rad}{s}]$','Interpreter','latex','fontsize',12.0)
 xlabel('Time [$s$]','Interpreter','latex','fontsize',12.0)
-legend(arrayfun(@(mode) sprintf('MEKF alpha = %.2f vs OB', alpha_show(mode)), 1:n_show, 'UniformOutput', false))
+a = '';
+b = '';
+if ~isempty(alpha_s)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f vs OB', alpha_s(mode)), 1:length(alpha_s), 'UniformOutput', false);
+end
+if ~isempty(window_s)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d vs OB', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
+end
+legend([a, b])
+
 
 
 %% Q against alpha analysis
+clear all; % NECESSARY
 
 if ~exist('results') || ~exist('time') || ~exist('kalman_Q')
     get_data;
 end
 
-if alpha(1) == -1
-    Q_ref = reshape(kalman_Q{1}(1, :, :), size(kalman_Q{1}, 2), size(kalman_Q{1}, 3));
-    trace_ref = trace(Q_ref);
-    kalman_Q(1) = [];
-    npoints = npoints - 1;
-    alpha = alpha(2:end);
+% Plot trace of Q over time for values of alpha
+
+% INPUTS -------- %
+alpha_Q = [0.7];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
+window_Q = [3000; 10000];
+%-----------------%
+
+% Obtain reference data and eliminate from arrays
+Q_ref = kalman_Q{1};
+Q_ref = reshape(Q_ref(1, :, :), size(Q_ref, 2), size(Q_ref, 3));
+trace_ref = trace(Q_ref);
+npoints = npoints - 1;
+value(1) = [];
+kalman_Q(1) = [];
+ff(1) = [];
+
+index_middle = sum(ff); % gives the number of iterations done with forgetting factor
+
+if ~isempty(alpha_Q)
+    index_alpha = zeros(length(alpha_Q), 1);
+    for i = 1:length(alpha_Q)
+        [~, index_alpha(i)] = min(abs(value(1:index_middle) - alpha_Q(i)));
+    end
 end
 
-% Plot trace of Q over time for values of alpha
-alpha_vec = [0, 0.25, 0.5, 0.75, 1];
-n_alpha = length(alpha_vec);
+if ~isempty(window_Q)
+    index_window = zeros(length(window_Q), 1);
+    for i = 1:length(window_Q)
+        [~, index_window(i)] = min(abs(value(index_middle+1:end) - window_Q(i)));
+    end
+    index_window = index_window + index_middle;
+end
 
-index_Q = zeros(1,n_alpha);
+index_Q = [index_alpha; index_window];
 ndata = length(time);
 
-for i = 1:n_alpha
-    [~,index_Q(i)] = min(abs(alpha - alpha_vec(i)));
-end
 
 figure; hold on; grid on;
-title('Trace of Q matrix for several values of \alpha');
+title('Trace of Q matrix for several values of \alpha and window size');
+set(gca, 'YScale', 'log');
+xlabel('Time [$s$]', 'Interpreter', 'latex', 'fontsize', 12.0)
+ylabel('Trace(Q)')
+trace_index = zeros(ndata, length(index_Q));
 
-for j = 1:n_alpha
+for j = 1:length(index_Q)
    
     Q = kalman_Q{index_Q(j)};
-    trace_Q = zeros(ndata, 1);
-    eig_Q = zeros(ndata, 6);
     
     for i = 1:ndata
         Q_i = reshape(Q(i, :, :), size(Q, 2), size(Q, 3));
-        trace_Q(i) = trace(Q_i);
-        eig_Q(i, :) = eig(Q_i);
+        trace_index(i, j) = trace(Q_i);
     end
-    
-    subplot(n_alpha, 1, j); hold on;
-    plot(time, trace_Q);
-    plot(time, trace_ref*ones(length(time),1),'r--')
-    set(gca, 'YScale', 'log');
-    xlabel('Time [$s$]', 'Interpreter', 'latex', 'fontsize', 12.0)
-    ylabel(['Trace of Q for \alpha = ' num2str(alpha_vec(j))]);
+
+    plot(time, trace_index(:, j));
+%     if j <= length(alpha_Q)
+%         ylabel(['Trace of Q for \alpha = ' num2str(alpha_Q(j))]);
+%     else
+%         ylabel(['Trace of Q for window = ' num2str(window_Q(j-length(alpha_Q)))])
+%     end
 end
+plot(time, trace_ref*ones(length(time),1),'r--')
+if ~isempty(alpha_Q)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_Q(mode)), 1:length(alpha_Q), 'UniformOutput', false);
+end
+if ~isempty(window_Q)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_Q(mode)), 1:length(window_Q), 'UniformOutput', false);
+end
+legend([a, b],'Reference (constant Q)')
 
 
 % Plot mean and variance of Q trace for each alpha
@@ -309,18 +467,94 @@ for j = 1:npoints
     var_Q(j) = var(trace_Q);
 end
 
+% Eliminate the results corresponding to alpha = 1
+value_plot = value([1:index_middle-1 , index_middle+1:end]);
+mean_plot = mean_Q([1:index_middle-1 , index_middle+1:end]);
+var_plot = var_Q([1:index_middle-1 , index_middle+1:end]);
+
 figure; 
 subplot(2,1,1); hold on; grid on;
-title('Mean and variance of trace(Q) for each alpha')
-plot(alpha, mean_Q);
-plot(alpha, trace_ref*ones(length(alpha),1), 'r--');
+title('Mean and variance of trace(Q) for each alpha and window size')
+plot(value_plot, mean_plot);
+plot(value_plot, trace_ref*ones(length(value) - 1,1), 'r--');
+set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
 xlabel('Alpha');
 ylabel('Mean value of the trace of Q');
+
 subplot(2,1,2); hold on; grid on;
-plot(alpha,var_Q);
+plot(value_plot,var_plot);
+set(gca, 'XScale', 'log');
+set(gca, 'YScale', 'log');
 xlabel('Alpha');
 ylabel('Variance of the trace of Q');
+
+
+% Computing frequency content of the trace of Q (one-sided spectrum)
+
+    % Using fft
+y = zeros(ndata/2 + 1, length(index_Q));
+
+for i = 1:length(index_Q)
+    aux = abs(fft(trace_index(:,i))/ndata); %normalized dft
+    aux = aux(1:ndata/2 + 1);               %compute one-sided
+    aux(2:end-1) = 2*aux(2:end-1);
+    y(:,i) = aux;
+end
+
+fs = 1/(time(2)-time(1));
+f = fs*(0:ndata/2)/ndata;
+
+figure; hold on; grid on;
+title('Magnitude of normalized discrete fourier transform of the trace of Q over time')
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+xlabel('$f [rad/s]$', 'interpreter', 'latex');
+ylabel('Spectral density')
+for i = 1:length(index_Q)
+    plot(f, y(:,i)) 
+end
+
+if ~isempty(alpha_Q)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_Q(mode)), 1:length(alpha_Q), 'UniformOutput', false);
+end
+if ~isempty(window_Q)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_Q(mode)), 1:length(window_Q), 'UniformOutput', false);
+end
+legend([a, b])
+
+
+
+    % Using pwelch
+    
+Pxx = cell(1, length(index_Q));
+f = cell(1, length(index_Q));
+
+na = 5;
+
+for i = 1:length(index_Q)
+   [Pxx{i}, f{i}, ~] = pwelchrun(trace_index(:,i), na, fs); 
+end
+
+figure; hold on; grid on;
+title('Power spectral density of trace of Q over time')
+set(gca, 'YScale', 'log')
+set(gca, 'XScale', 'log')
+xlabel('$f [rad/s]$', 'interpreter', 'latex');
+ylabel('PSD')
+
+for i = 1:length(index_Q)
+    plot(f{i}, Pxx{i}) 
+end
+
+if ~isempty(alpha_Q)
+    a = arrayfun(@(mode) sprintf('MEKF alpha = %.2f', alpha_Q(mode)), 1:length(alpha_Q), 'UniformOutput', false);
+end
+if ~isempty(window_Q)
+    b = arrayfun(@(mode) sprintf('MEKF window = %d', window_Q(mode)), 1:length(window_Q), 'UniformOutput', false);
+end
+legend([a, b])
+
 
 
 %% Quaternion error
