@@ -50,15 +50,15 @@ clearvars -except ...
 %% Multiplicative Extended Kalman Filter
 % Tuning
 %Sigma accelerometer
-sigma_acc = 0.1237; 
+sigma_acc = 0.01240; 
 %Sigma magnetometer
-sigma_mag = 0.0560;
+sigma_mag = 0.04608;
 %Sigma optitrack 
 sigma_opti = 1e-2;
 %Sigma angular random walk (ARW)
-sigma_v = 9.486e-3; 
+sigma_v = 9.600e-3; 
 %Sigma rate random walk (RRW)
-sigma_w = 5.621e-5; 
+sigma_w = 3.684e-5; 
 
 
 % %Sigma accelerometer
@@ -76,9 +76,9 @@ sigma_w = 5.621e-5;
 %q_0 = [0 0 0 1]';
 q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
-P_0 = 1e-4*eye(6);
+P_0 = 1e-1*eye(6);
 
-err = 0.1;
+err = 1;
 Q_0 = [((err*sigma_v)^2*dt+1/3*(err*sigma_w)^2*dt^3)*eye(3)       (1/2*(err*sigma_w)^2*dt^2)*eye(3) ;
        (1/2*(err*sigma_w)^2*dt^2)*eye(3)                          ((err*sigma_w)^2*dt)*eye(3)      ];
 %Q_0 = 100*Q_0;
@@ -103,7 +103,7 @@ MEKF_q_e = zeros(size(kalman_quaternion));
 MEKF_euler_e = zeros(length(kalman_quaternion),3);
 MEKF_euler = zeros(length(kalman_quaternion),3);
 
-ff = [true];     % forgetting factor flag
+ff = true;     % forgetting factor flag
 value = [-1];
 
 % update Q matrix with forgetting factor
@@ -115,7 +115,7 @@ ff = [ff, true(1,length(alpha_value))];
 
 % update Q matrix with estimated value
 npoints = 55;
-window_max = 10000;
+window_max = 20000;
 window_value = logspace(0, log10(window_max), npoints);
 window_value = ceil(window_value); % value must be an integer.
 window_value = unique(window_value); % Remove duplicates.
