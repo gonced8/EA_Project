@@ -3,14 +3,15 @@ get_data;
 
 
 %% Plot
+clear;
 
 if ~exist('results') || ~exist('time')
     get_data;
 end
 
 % INPUTS -------- %
-alpha_s = [-1; 0.7; 1];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
-window_s = [3000; 10000];
+alpha_s = [0; 0.7; 1];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
+window_s = [1000; 10000];
 conf_interval = false;
 %-----------------%
 
@@ -95,6 +96,7 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend(['Optitrack', a, b])
+saveas(gcf, 'figs/quatselect', 'png');
 
 
 figure
@@ -138,6 +140,7 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend(['Optitrack', a, b])
+saveas(gcf, 'figs/eulerselect', 'png');
 
 
 figure
@@ -196,6 +199,8 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d vs Optitrack', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b])
+saveas(gcf, 'figs/euler_eselect', 'png');
+
 
     % Using pwelch
 
@@ -254,6 +259,8 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d vs Optitrack', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b])
+saveas(gcf, 'figs/euler_e_psdselect', 'png');
+
 
 
 figure
@@ -295,6 +302,7 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b, 'OB'])
+saveas(gcf, 'figs/wselect', 'png');
 
 
 figure
@@ -333,6 +341,7 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b])
+saveas(gcf, 'figs/biasselect', 'png');
 
 
 figure
@@ -371,11 +380,12 @@ if ~isempty(window_s)
     b = arrayfun(@(mode) sprintf('MEKF window = %d vs OB', window_s(mode)), 1:length(window_s), 'UniformOutput', false);
 end
 legend([a, b])
+saveas(gcf, 'figs/w_eselect', 'png');
 
 
 
 %% Q against alpha analysis
-clear all; % NECESSARY
+clear; % NECESSARY
 
 if ~exist('results') || ~exist('time') || ~exist('kalman_Q')
     get_data;
@@ -385,7 +395,7 @@ end
 
 % INPUTS -------- %
 alpha_Q = [0.7];  % -1 corresponds to not updating Q, values in [0,1] correspond to updating Q
-window_Q = [3000; 10000];
+window_Q = [1000; 10000];
 %-----------------%
 
 % Obtain reference data and eliminate from arrays
