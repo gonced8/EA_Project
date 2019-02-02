@@ -671,7 +671,7 @@ legend('varying alpha', 'minimum', 'estimated Q');
 
 
 %% Euler angles error against alpha
-clearvars -except results time
+clearvars -except results time eul_w om_a om_w est_mean est_cov value
 close all
 
 if ~exist('results') || ~exist('time')
@@ -695,17 +695,17 @@ eul_a.mean = zeros(na, ne);
 eul_a.cov = zeros(na, ne, ne);
 
 % Rotate yaw axis 90 degrees
-for i = 1:na
-    results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
-end
+% for i = 1:na
+%     results2(i).MEKF_euler_e =  results2(i).MEKF_euler_e - [0,0,pi/2];
+% end
 
 for i = 1:na
     eul_a.mean(i, :) = abs(mean(results2(i).MEKF_euler_e));
     eul_a.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
-true_mean = eul_a.mean(1,:);
-true_cov = squeeze(eul_a.cov(1,:,:));
+eul_a.est_mean = eul_a.mean(1,:);
+eul_a.est_cov = squeeze(eul_a.cov(1,:,:));
 
 eul_a.mean = eul_a.mean(2:end,:);
 eul_a.cov = eul_a.cov(2:end,:,:);
@@ -722,7 +722,7 @@ subplot(3, 1, 1);
 hold on;
 plot(alpha, eul_a.mean(:, 1));
 plot(alpha(im), eul_a.mean(im,1), '*c');
-plot(alpha, ones(size(alpha))*true_mean(1), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_mean(1), '--k');
 title('Mean of euler angle error against alpha');
 ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -730,14 +730,14 @@ subplot(3, 1, 2);
 hold on;
 plot(alpha, eul_a.mean(:, 2));
 plot(alpha(im), eul_a.mean(im,2), '*c');
-plot(alpha, ones(size(alpha))*true_mean(2), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_mean(2), '--k');
 ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
 plot(alpha, eul_a.mean(:, 3));
 plot(alpha(im), eul_a.mean(im,3), '*c');
-plot(alpha, ones(size(alpha))*true_mean(3), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_mean(3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -748,7 +748,7 @@ subplot(3, 1, 1);
 hold on;
 plot(alpha, eul_a.cov(:, 1, 1));
 plot(alpha(ic), eul_a.cov(ic, 1, 1), '*c');
-plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_cov(1,1), '--k');
 title('Variance of euler angle error against alpha');
 ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -756,14 +756,14 @@ subplot(3, 1, 2);
 hold on;
 plot(alpha, eul_a.cov(:, 2, 2));
 plot(alpha(ic), eul_a.cov(ic, 2, 2), '*c');
-plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
 plot(alpha, eul_a.cov(:, 3, 3));
 plot(alpha(ic), eul_a.cov(ic, 3, 3), '*c');
-plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
+plot(alpha, ones(size(alpha))*eul_a.est_cov(3,3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -771,7 +771,7 @@ legend('varying alpha', 'minimum', 'estimated Q');
 
 
 %% Angular rates error against alpha
-clearvars -except results time omega
+clearvars -except results time omega om_w eul_a eul_w value
 close all
 
 if ~exist('results') || ~exist('time') || ~exist('omega')
@@ -808,8 +808,8 @@ for i = 1:na
     om_a.cov(i, :, :) = covariance(reshape(ome(i,:,:), size(ome,2), size(ome,3)));
 end
 
-true_mean = om_a.mean(1,:);
-true_cov = squeeze(om_a.cov(1,:,:));
+om_a.est_mean = om_a.mean(1,:);
+om_a.est_cov = squeeze(om_a.cov(1,:,:));
 
 om_a.mean = om_a.mean(2:end,:);
 om_a.cov = om_a.cov(2:end,:,:);
@@ -825,7 +825,7 @@ subplot(3, 1, 1);
 hold on;
 plot(alpha, om_a.mean(:, 1));
 plot(alpha(im), om_a.mean(im,1), '*c');
-plot(alpha, ones(size(alpha))*true_mean(1), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_mean(1), '--k');
 title('Mean of angular rates error against alpha');
 ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -833,14 +833,14 @@ subplot(3, 1, 2);
 hold on;
 plot(alpha, om_a.mean(:, 2));
 plot(alpha(im), om_a.mean(im,2), '*c');
-plot(alpha, ones(size(alpha))*true_mean(2), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_mean(2), '--k');
 ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
 plot(alpha, om_a.mean(:, 3));
 plot(alpha(im), om_a.mean(im,3), '*c');
-plot(alpha, ones(size(alpha))*true_mean(3), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_mean(3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -851,7 +851,7 @@ subplot(3, 1, 1);
 hold on;
 plot(alpha, om_a.cov(:, 1, 1));
 plot(alpha(ic), om_a.cov(ic, 1, 1), '*c');
-plot(alpha, ones(size(alpha))*true_cov(1,1), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_cov(1,1), '--k');
 title('Variance of angular rates error against alpha');
 ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -859,14 +859,14 @@ subplot(3, 1, 2);
 hold on;
 plot(alpha, om_a.cov(:, 2, 2));
 plot(alpha(ic), om_a.cov(ic, 2, 2), '*c');
-plot(alpha, ones(size(alpha))*true_cov(2,2), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 subplot(3, 1, 3);
 hold on;
 plot(alpha, om_a.cov(:, 3, 3));
 plot(alpha(ic), om_a.cov(ic, 3, 3), '*c');
-plot(alpha, ones(size(alpha))*true_cov(3,3), '--k');
+plot(alpha, ones(size(alpha))*om_a.est_cov(3,3), '--k');
 xlabel('$\alpha$', 'interpreter', 'latex');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -874,7 +874,7 @@ legend('varying alpha', 'minimum', 'estimated Q');
 
 
 %% Euler angles error against mean window
-clearvars -except results time
+clearvars -except results time eul_a om_a om_w alpha
 close all
 
 if ~exist('results') || ~exist('time')
@@ -905,8 +905,8 @@ for i = 1:na
     eul_w.cov(i, :, :) = covariance(results2(i).MEKF_euler_e);
 end
 
-true_mean = eul_w.mean(1,:);
-true_cov = squeeze(eul_w.cov(1,:,:));
+eul_w.est_mean = eul_w.mean(1,:);
+eul_w.est_cov = squeeze(eul_w.cov(1,:,:));
 
 eul_w.mean = eul_w.mean(2:end,:);
 eul_w.cov = eul_w.cov(2:end,:,:);
@@ -922,7 +922,7 @@ subplot(3, 1, 1);
 hold on;
 plot(value, eul_w.mean(:, 1));
 plot(value(im), eul_w.mean(im,1), '*c');
-plot(value, ones(size(value))*true_mean(1), '--k');
+plot(value, ones(size(value))*eul_w.est_mean(1), '--k');
 title('Mean of euler angle error against window size of mean');
 ylabel('$\bar \delta_\phi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -932,7 +932,7 @@ subplot(3, 1, 2);
 hold on;
 plot(value, eul_w.mean(:, 2));
 plot(value(im), eul_w.mean(im,2), '*c');
-plot(value, ones(size(value))*true_mean(2), '--k');
+plot(value, ones(size(value))*eul_w.est_mean(2), '--k');
 ylabel('$\bar \delta_\theta [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
@@ -941,7 +941,7 @@ subplot(3, 1, 3);
 hold on;
 plot(value, eul_w.mean(:, 3));
 plot(value(im), eul_w.mean(im,3), '*c');
-plot(value, ones(size(value))*true_mean(3), '--k');
+plot(value, ones(size(value))*eul_w.est_mean(3), '--k');
 xlabel('window size [points]');
 ylabel('$\bar \delta_\psi [\mathrm{rad}]$', 'interpreter', 'latex');
 grid;
@@ -954,7 +954,7 @@ subplot(3, 1, 1);
 hold on;
 plot(value, eul_w.cov(:, 1, 1));
 plot(value(ic), eul_w.cov(ic, 1, 1), '*c');
-plot(value, ones(size(value))*true_cov(1,1), '--k');
+plot(value, ones(size(value))*eul_w.est_cov(1,1), '--k');
 title('Variance of euler angle error against window size of mean');
 ylabel('$\mathrm{Var}(\delta_\phi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -964,7 +964,7 @@ subplot(3, 1, 2);
 hold on;
 plot(value, eul_w.cov(:, 2, 2));
 plot(value(ic), eul_w.cov(ic, 2, 2), '*c');
-plot(value, ones(size(value))*true_cov(2,2), '--k');
+plot(value, ones(size(value))*eul_w.est_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(\delta_\theta) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
@@ -973,7 +973,7 @@ subplot(3, 1, 3);
 hold on; 
 plot(value, eul_w.cov(:, 3, 3));
 plot(value(ic), eul_w.cov(ic, 3, 3), '*c');
-plot(value, ones(size(value))*true_cov(3,3), '--k');
+plot(value, ones(size(value))*eul_w.est_cov(3,3), '--k');
 xlabel('window size [points]');
 ylabel('$\mathrm{Var}(\delta_\psi) [\mathrm{rad}^2]$', 'interpreter', 'latex');
 grid;
@@ -983,7 +983,7 @@ legend('varying window', 'minimum', 'estimated Q', 'location', 'northwest');
 
 
 %% Angular rates error against mean window
-clearvars -except results time omega
+clearvars -except results time omega om_a eul_a eul_w alpha est_mean est_cov
 close all
 
 if ~exist('results') || ~exist('time') || ~exist('omega')
@@ -1017,8 +1017,8 @@ for i = 1:na
     om_w.cov(i, :, :) = covariance(reshape(ome(i,:,:), size(ome,2), size(ome,3)));
 end
 
-true_mean = om_w.mean(1,:);
-true_cov = squeeze(om_w.cov(1,:,:));
+om_w.est_mean = om_w.mean(1,:);
+om_w.est_cov = squeeze(om_w.cov(1,:,:));
 
 om_w.mean = om_w.mean(2:end,:);
 om_w.cov = om_w.cov(2:end,:,:);
@@ -1034,7 +1034,7 @@ subplot(3, 1, 1);
 hold on;
 plot(value, om_w.mean(:, 1));
 plot(value(im), om_w.mean(im,1), '*c');
-plot(value, ones(size(value))*true_mean(1), '--k');
+plot(value, ones(size(value))*om_w.est_mean(1), '--k');
 title('Mean of angular rate error against window size of mean');
 ylabel('$\bar p_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
 grid;
@@ -1044,7 +1044,7 @@ subplot(3, 1, 2);
 hold on;
 plot(value, om_w.mean(:, 2));
 plot(value(im), om_w.mean(im,2), '*c');
-plot(value, ones(size(value))*true_mean(2), '--k');
+plot(value, ones(size(value))*om_w.est_mean(2), '--k');
 ylabel('$\bar q_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
@@ -1053,7 +1053,7 @@ subplot(3, 1, 3);
 hold on;
 plot(value, om_w.mean(:, 3));
 plot(value(im), om_w.mean(im,3), '*c');
-plot(value, ones(size(value))*true_mean(3), '--k');
+plot(value, ones(size(value))*om_w.est_mean(3), '--k');
 xlabel('window size [points]');
 ylabel('$\bar r_e [\mathrm{rad/s}]$', 'interpreter', 'latex');
 grid;
@@ -1066,7 +1066,7 @@ subplot(3, 1, 1);
 hold on;
 plot(value, om_w.cov(:, 1, 1));
 plot(value(ic), om_w.cov(ic, 1, 1), '*c');
-plot(value, ones(size(value))*true_cov(1,1), '--k');
+plot(value, ones(size(value))*om_w.est_cov(1,1), '--k');
 title('Variance of angular rate error against window size of mean');
 ylabel('$\mathrm{Var}(p_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
 grid;
@@ -1076,7 +1076,7 @@ subplot(3, 1, 2);
 hold on;
 plot(value, om_w.cov(:, 2, 2));
 plot(value(ic), om_w.cov(ic, 2, 2), '*c');
-plot(value, ones(size(value))*true_cov(2,2), '--k');
+plot(value, ones(size(value))*om_w.est_cov(2,2), '--k');
 ylabel('$\mathrm{Var}(q_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
@@ -1085,13 +1085,81 @@ subplot(3, 1, 3);
 hold on; 
 plot(value, om_w.cov(:, 3, 3));
 plot(value(ic), om_w.cov(ic, 3, 3), '*c');
-plot(value, ones(size(value))*true_cov(3,3), '--k');
+plot(value, ones(size(value))*om_w.est_cov(3,3), '--k');
 xlabel('window size [points]');
 ylabel('$\mathrm{Var}(r_e) [(\mathrm{rad/s})^2]$', 'interpreter', 'latex');
 grid;
 set(gca, 'XScale', 'log');
 xlim([value(1), value(end)]);
 legend('varying window', 'minimum', 'estimated Q', 'location', 'northwest');
+
+
+%% 2 axis Euler angles error
+clearvars -except results time omega om_a om_w eul_a eul_w alpha value
+close all
+
+figure;
+labelx = {'$\alpha$', 'window size [points]'};
+subplot(3, 1, 1);
+labely = {'$\bar \delta_\phi [\mathrm{rad}]$', ''};
+plotxx(gcf, alpha, eul_a.mean(:,1), value, eul_w.mean(:,1), eul_w.est_mean(1), labelx, labely);
+line(value, ones(size(value))*eul_w.est_mean(1), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+title({'Mean of angular rate error using forgetting factor (black) and mean value (red)'; ''})
+subplot(3, 1, 2);
+labely = {'$\bar \delta_\theta [\mathrm{rad}]$', ''};
+plotxx(gcf, alpha, eul_a.mean(:,2), value, eul_w.mean(:,2), eul_w.est_mean(2), labelx, labely);
+line(value, ones(size(value))*eul_w.est_mean(2), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+subplot(3, 1, 3);
+labely = {'$\bar \delta_\psi [\mathrm{rad}]$', ''};
+[~,hl1,hl2] = plotxx(gcf, alpha, eul_a.mean(:,3), value, eul_w.mean(:,3), eul_w.est_mean(3), labelx, labely);
+hl3 = line(value, ones(size(value))*eul_w.est_mean(3), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+legend([hl1;hl2;hl3], {'forgetting factor', 'varying window', 'estimated Q'}, 'location', 'southwest');
+
+
+%% 2 axis Angular rates error
+clearvars -except results time omega om_a om_w eul_a eul_w alpha value
+close all
+
+figure;
+labelx = {'$\alpha$', 'window size [points]'};
+subplot(3, 1, 1);
+labely = {'$\bar p_e [\mathrm{rad/s}]$', ''};
+plotxx(gcf, alpha, om_a.mean(:,1), value, om_w.mean(:,1), om_w.est_mean(1), labelx, labely);
+line(value, ones(size(value))*om_w.est_mean(1), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+title({'Mean of angular rate error using forgetting factor (black) and mean value (red)'; ''})
+subplot(3, 1, 2);
+labely = {'$\bar q_e [\mathrm{rad/s}]$', ''};
+plotxx(gcf, alpha, om_a.mean(:,2), value, om_w.mean(:,2), om_w.est_mean(2), labelx, labely);
+line(value, ones(size(value))*om_w.est_mean(2), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+subplot(3, 1, 3);
+labely = {'$\bar r_e [\mathrm{rad/s}]$', ''};
+[~,hl1,hl2] = plotxx(gcf, alpha, om_a.mean(:,3), value, om_w.mean(:,3), om_w.est_mean(3), labelx, labely);
+hl3 = line(value, ones(size(value))*om_w.est_mean(3), 'Parent', gca, 'Color', 'b', 'LineStyle', '--');
+set(gca, 'XScale', 'log');
+xlim([value(1), value(end)]);
+ax = gca;
+ax.YGrid = 'on';
+legend([hl1;hl2;hl3], {'forgetting factor', 'varying window', 'estimated Q'}, 'location', 'northwest');
 
 
 %% Functions
