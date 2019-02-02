@@ -78,10 +78,10 @@ q_0 = init_q(accelerometer(1,:), magnetometer(1,:), [1, 1]);
 beta_0 = gyroscope(1,:)';
 P_0 = 1e-1*eye(6);
 
-err = 1;
-Q_0 = [((err*sigma_v)^2*dt+1/3*(err*sigma_w)^2*dt^3)*eye(3)       (1/2*(err*sigma_w)^2*dt^2)*eye(3) ;
-       (1/2*(err*sigma_w)^2*dt^2)*eye(3)                          ((err*sigma_w)^2*dt)*eye(3)      ];
-%Q_0 = 100*Q_0;
+% err = 1;
+% Q_0 = [((err*sigma_v)^2*dt+1/3*(err*sigma_w)^2*dt^3)*eye(3)       (1/2*(err*sigma_w)^2*dt^2)*eye(3) ;
+%        (1/2*(err*sigma_w)^2*dt^2)*eye(3)                          ((err*sigma_w)^2*dt)*eye(3)      ];
+Q_0 = [eye(3),eye(3);eye(3),eye(3)]*1e-8;
    
 R_0 = [sigma_acc*eye(3)         zeros(3);
             zeros(3)        sigma_mag*eye(3)];
