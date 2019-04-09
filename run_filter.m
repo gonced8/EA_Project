@@ -50,9 +50,9 @@ clearvars -except ...
 %% Multiplicative Extended Kalman Filter
 % Tuning
 %Sigma accelerometer
-sigma_acc = 0.01240; 
+sigma_acc = 1e-1; 
 %Sigma magnetometer
-sigma_mag = 0.04608;
+sigma_mag = 2e-1;
 %Sigma optitrack 
 sigma_opti = 1e-2;
 %Sigma angular random walk (ARW)
@@ -83,8 +83,8 @@ P_0 = 1e-1*eye(6);
 %        (1/2*(err*sigma_w)^2*dt^2)*eye(3)                          ((err*sigma_w)^2*dt)*eye(3)      ];
 Q_0 = [eye(3),eye(3);eye(3),eye(3)]*1e-8;
    
-R_0 = [sigma_acc*eye(3)         zeros(3);
-            zeros(3)        sigma_mag*eye(3)];
+R_0 = [sigma_acc^2*eye(3)         zeros(3);
+            zeros(3)        sigma_mag^2*eye(3)];
         
 %Attitude Estimator
 kalman_quaternion = zeros(length(time),4);
